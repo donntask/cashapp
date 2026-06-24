@@ -12,6 +12,7 @@ import { useAuth } from '@/contexts/auth-context';
 
 export default function BushFiApp() {
   const { isAuthenticated } = useAuth();
+  const [authFlowComplete, setAuthFlowComplete] = useState(isAuthenticated);
   const [activeTab, setActiveTab] = useState<'money' | 'paypad' | 'activity'>('money');
   const [showProfile, setShowProfile] = useState(false);
   const [showPaymentFlow, setShowPaymentFlow] = useState(false);
@@ -31,8 +32,8 @@ export default function BushFiApp() {
     setPadAmount('0');
   };
 
-  if (!isAuthenticated) {
-    return <AuthFlow onAuthComplete={() => {}} />;
+  if (!authFlowComplete) {
+    return <AuthFlow onAuthComplete={() => setAuthFlowComplete(true)} />;
   }
 
   return (
