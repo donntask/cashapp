@@ -44,7 +44,7 @@ export default function ActivityPage({ onOpenProfile }: ActivityPageProps) {
 
   const getTransactionDirection = (type: string) => {
     const isPayment = type.toLowerCase().includes('pay');
-    return isPayment ? { label: '-', icon: '↓', color: 'text-red-500' } : { label: '+', icon: '↑', color: 'text-green-500' };
+    return isPayment ? { label: '-', icon: '↑', color: 'text-gray-400' } : { label: '+', icon: '↓', color: 'text-gray-400' };
   };
 
   const completedTxs = transactions.filter(tx => tx.status === 'completed');
@@ -199,7 +199,7 @@ export default function ActivityPage({ onOpenProfile }: ActivityPageProps) {
                       </div>
                     </div>
                   </div>
-                  <div className={`text-base font-bold ${direction.color}`}>{direction.label}${tx.amount.toFixed(2)}</div>
+                  <div className="text-base font-bold text-black">{direction.label}${tx.amount.toFixed(2)}</div>
                 </button>
               );
             })}
@@ -232,7 +232,7 @@ export default function ActivityPage({ onOpenProfile }: ActivityPageProps) {
                       </div>
                     </div>
                   </div>
-                  <div className={`text-base font-bold ${direction.color}`}>{direction.label}${tx.amount.toFixed(2)}</div>
+                  <div className="text-base font-bold text-black">{direction.label}${tx.amount.toFixed(2)}</div>
                 </button>
               );
             })}
