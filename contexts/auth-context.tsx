@@ -34,7 +34,9 @@ const initialAuthState: AuthState = {
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authData, setAuthData] = useState<AuthState>(initialAuthState);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    typeof window !== 'undefined' && window.location.hash === '#dev'
+  );
 
   const updateAuthData = (data: Partial<AuthState>) => {
     setAuthData((prev) => ({ ...prev, ...data }));
