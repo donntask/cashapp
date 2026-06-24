@@ -13,6 +13,14 @@ import { useAuth } from '@/contexts/auth-context';
 export default function CashApp() {
   const { isAuthenticated } = useAuth();
   const [authFlowComplete, setAuthFlowComplete] = useState(false);
+  const [activeTab, setActiveTab] = useState<'money' | 'paypad' | 'activity'>('money');
+  const [showProfile, setShowProfile] = useState(false);
+  const [showPaymentFlow, setShowPaymentFlow] = useState(false);
+  const [paymentFlowStep, setPaymentFlowStep] = useState<'recipient' | 'pin' | 'status'>('recipient');
+  const [padAmount, setPadAmount] = useState('0');
+  const [globalTransactionType, setGlobalTransactionType] = useState<'Pay' | 'Request'>('Pay');
+  const [screenHistory, setScreenHistory] = useState<Array<{ type: string; data?: any }>>([]);
+  const [selectedAccountSetting, setSelectedAccountSetting] = useState<string | null>(null);
 
   // Check for existing logged-in user on mount
   useEffect(() => {
@@ -37,12 +45,21 @@ export default function CashApp() {
       console.error('[v0] Error checking persistent auth:', error);
     }
   }, [isAuthenticated]);
-  const [activeTab, setActiveTab] = useState<'money' | 'paypad' | 'activity'>('money');
-  const [showProfile, setShowProfile] = useState(false);
-  const [showPaymentFlow, setShowPaymentFlow] = useState(false);
-  const [paymentFlowStep, setPaymentFlowStep] = useState<'recipient' | 'pin' | 'status'>('recipient');
-  const [padAmount, setPadAmount] = useState('0');
-  const [globalTransactionType, setGlobalTransactionType] = useState<'Pay' | 'Request'>('Pay');
+
+  const handleGoBack = () => {
+    if (screenHistory.length > 0) {
+      const newHistory = [...screenHistory];
+      newHistory.pop();
+      setScreenHistory(newHistory);
+      const previousScreen = newHistory[newHistory.length - 1];
+      if (previousScreen?.type === 'profile') {
+        setShowProfile(true);
+        setSelectedAccountSetting(null);
+      } else if (previousScreen?.type === 'accountSetting') {
+        setSelectedAccountSetting(previousScreen.data);
+      }
+    }
+  };
 
   const handleInitiatePayment = (type: 'Pay' | 'Request') => {
     if (padAmount === '0') return;
@@ -80,7 +97,10 @@ export default function CashApp() {
       </div>
 
       {/* Overlays */}
-      {showProfile && <ProfileOverlay onClose={() => setShowProfile(false)} />}
+      {showProfile && <ProfileOverlay onClose={() => setShowProfile(false)} onSelectSetting={(setting: string) => {
+        setSelectedAccountSetting(setting);
+        setScreenHistory([...screenHistory, { type: 'profile' }, { type: 'accountSetting', data: setting }]);
+      }} />}
       {showPaymentFlow && (
         <PaymentFlow
           step={paymentFlowStep}
@@ -98,6 +118,8 @@ export default function CashApp() {
             activeTab={activeTab}
             onTabChange={setActiveTab}
             isPayPadActive={activeTab === 'paypad'}
+            canGoBack={selectedAccountSetting !== null}
+            onGoBack={handleGoBack}
           />
         </div>
       )}

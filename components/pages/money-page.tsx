@@ -30,8 +30,8 @@ export default function MoneyPage({ onOpenProfile }: MoneyPageProps) {
   return (
     <div className="flex flex-col w-full h-full overflow-hidden">
       {/* Header */}
-      <div className="flex justify-between items-center px-6 py-3 flex-shrink-0">
-        <h1 className="text-2xl font-bold text-[#111111]">Money</h1>
+      <div className="flex justify-between items-center px-6 py-4 flex-shrink-0">
+        <h1 className="text-4xl font-black text-[#111111]">Money</h1>
         <button
           onClick={onOpenProfile}
           className="w-9 h-9 rounded-full bg-[#E5E7EB] cursor-pointer overflow-hidden border border-black/5 flex items-center justify-center text-[#111111]"
@@ -51,7 +51,7 @@ export default function MoneyPage({ onOpenProfile }: MoneyPageProps) {
             Account & routing <span className="text-[10px]">❯</span>
           </a>
         </div>
-        <div className="text-4xl font-bold text-[#111111] mb-3 leading-tight">{formatCurrency(cashBalance)}</div>
+        <div className="text-5xl font-black text-[#111111] mb-4 leading-tight">{formatCurrency(cashBalance)}</div>
         <div className="flex gap-2">
           <button className="flex-1 h-10 bg-[#F4F4F6] text-[#111111] text-xs font-semibold border-0 rounded-full cursor-pointer">
             Add Cash
@@ -67,7 +67,7 @@ export default function MoneyPage({ onOpenProfile }: MoneyPageProps) {
         {/* Savings */}
         <div className="bg-white rounded-[12px] p-2.5 flex flex-col cursor-pointer min-h-0">
           <div className="flex justify-between items-start mb-1">
-            <span className="text-xs font-semibold text-[#111111]">Savings</span>
+            <span className="text-sm font-bold text-[#111111]">Savings</span>
             <span className="text-xs text-[#C7C7CC]">❯</span>
           </div>
           <div className="w-9 h-9 rounded-full bg-[#C8E6C9] flex items-center justify-center text-[#2E7D32] mb-1">
@@ -83,7 +83,7 @@ export default function MoneyPage({ onOpenProfile }: MoneyPageProps) {
         {/* Buy bitcoin */}
         <div className="bg-white rounded-[12px] p-2.5 flex flex-col cursor-pointer min-h-0">
           <div className="flex justify-between items-start mb-1">
-            <span className="text-xs font-semibold text-[#111111]">Buy bitcoin</span>
+            <span className="text-sm font-bold text-[#111111]">Buy bitcoin</span>
             <span className="text-xs text-[#C7C7CC]">❯</span>
           </div>
           <div className="w-9 h-9 rounded-lg bg-[#E3F2FD] flex items-center justify-center mb-1">
@@ -94,7 +94,7 @@ export default function MoneyPage({ onOpenProfile }: MoneyPageProps) {
         {/* Invest in stocks */}
         <div className="bg-white rounded-[12px] p-2.5 flex flex-col cursor-pointer min-h-0">
           <div className="flex justify-between items-start mb-1">
-            <span className="text-xs font-semibold text-[#111111]">Invest in stocks</span>
+            <span className="text-sm font-bold text-[#111111]">Invest in stocks</span>
             <span className="text-xs text-[#C7C7CC]">❯</span>
           </div>
           <div className="w-9 h-9 rounded-lg bg-[#F3E5F5] flex items-center justify-center mb-1">
@@ -108,7 +108,7 @@ export default function MoneyPage({ onOpenProfile }: MoneyPageProps) {
         {/* Free tax filing */}
         <div className="bg-white rounded-[12px] p-2.5 flex flex-col cursor-pointer min-h-0">
           <div className="flex justify-between items-start mb-1">
-            <span className="text-xs font-semibold text-[#111111]">Free tax filing</span>
+            <span className="text-sm font-bold text-[#111111]">Free tax filing</span>
             <span className="text-xs text-[#C7C7CC]">❯</span>
           </div>
           <div className="w-9 h-9 rounded-lg bg-[#FFF9C4] flex items-center justify-center mb-1">

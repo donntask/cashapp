@@ -13,10 +13,32 @@ interface UserData {
 
 interface ProfileOverlayProps {
   onClose: () => void;
+  onSelectSetting?: (setting: string) => void;
 }
 
-export default function ProfileOverlay({ onClose }: ProfileOverlayProps) {
+export default function ProfileOverlay({ onClose, onSelectSetting }: ProfileOverlayProps) {
   const [user, setUser] = useState<UserData | null>(null);
+  const [loadingSettingName, setLoadingSettingName] = useState<string | null>(null);
+
+  const handleSettingClick = (settingName: string) => {
+    // Settings that should navigate directly to their detail pages
+    const directNavigateSettings = ['Personal', 'Linked Banks', 'Support', 'Security & Privacy', 'Notifications'];
+    
+    if (directNavigateSettings.includes(settingName)) {
+      // These navigate to detail pages - call onSelectSetting if provided
+      if (onSelectSetting) {
+        onSelectSetting(settingName);
+      }
+      return;
+    }
+    
+    // All other settings show loading for 5 seconds then redirect to home
+    setLoadingSettingName(settingName);
+    setTimeout(() => {
+      onClose();
+      setLoadingSettingName(null);
+    }, 5000);
+  };
 
   useEffect(() => {
     try {
@@ -131,7 +153,7 @@ export default function ProfileOverlay({ onClose }: ProfileOverlayProps) {
       {/* Settings Section */}
       <div className="text-xs font-bold uppercase text-[#8E8E93] px-6 py-3 mt-2">Account & Settings</div>
 
-      <div className="bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer">
+      <button onClick={() => handleSettingClick('Personal')} className="w-full bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer border-0">
         <div className="flex items-center gap-4 text-base font-semibold text-[#111111]">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
@@ -139,20 +161,20 @@ export default function ProfileOverlay({ onClose }: ProfileOverlayProps) {
           </svg>
           <span>Personal</span>
         </div>
-        <span className="text-xs text-[#C7C7CC]">❯</span>
-      </div>
+        <span className="text-xs text-[#C7C7CC]">{loadingSettingName === 'Personal' ? '...' : '❯'}</span>
+      </button>
 
-      <div className="bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer">
+      <button onClick={() => handleSettingClick('Favorites')} className="w-full bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer border-0">
         <div className="flex items-center gap-4 text-base font-semibold text-[#111111]">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
           </svg>
           <span>Favorites</span>
         </div>
-        <span className="text-xs text-[#C7C7CC]">❯</span>
-      </div>
+        <span className="text-xs text-[#C7C7CC]">{loadingSettingName === 'Favorites' ? '...' : '❯'}</span>
+      </button>
 
-      <div className="bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer">
+      <button onClick={() => handleSettingClick('Linked Banks')} className="w-full bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer border-0">
         <div className="flex items-center gap-4 text-base font-semibold text-[#111111]">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
@@ -160,20 +182,20 @@ export default function ProfileOverlay({ onClose }: ProfileOverlayProps) {
           </svg>
           <span>Linked Banks</span>
         </div>
-        <span className="text-xs text-[#C7C7CC]">❯</span>
-      </div>
+        <span className="text-xs text-[#C7C7CC]">{loadingSettingName === 'Linked Banks' ? '...' : '❯'}</span>
+      </button>
 
-      <div className="bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer">
+      <button onClick={() => handleSettingClick('Security & Privacy')} className="w-full bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer border-0">
         <div className="flex items-center gap-4 text-base font-semibold text-[#111111]">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
           </svg>
           <span>Security & Privacy</span>
         </div>
-        <span className="text-xs text-[#C7C7CC]">❯</span>
-      </div>
+        <span className="text-xs text-[#C7C7CC]">{loadingSettingName === 'Security & Privacy' ? '...' : '❯'}</span>
+      </button>
 
-      <div className="bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer">
+      <button onClick={() => handleSettingClick('Family')} className="w-full bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer border-0">
         <div className="flex items-center gap-4 text-base font-semibold text-[#111111]">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -183,10 +205,10 @@ export default function ProfileOverlay({ onClose }: ProfileOverlayProps) {
           </svg>
           <span>Family</span>
         </div>
-        <span className="text-xs text-[#C7C7CC]">❯</span>
-      </div>
+        <span className="text-xs text-[#C7C7CC]">{loadingSettingName === 'Family' ? '...' : '❯'}</span>
+      </button>
 
-      <div className="bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer">
+      <button onClick={() => handleSettingClick('Limits')} className="w-full bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer border-0">
         <div className="flex items-center gap-4 text-base font-semibold text-[#111111]">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M21 4H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z" />
@@ -194,10 +216,10 @@ export default function ProfileOverlay({ onClose }: ProfileOverlayProps) {
           </svg>
           <span>Limits</span>
         </div>
-        <span className="text-xs text-[#C7C7CC]">❯</span>
-      </div>
+        <span className="text-xs text-[#C7C7CC]">{loadingSettingName === 'Limits' ? '...' : '❯'}</span>
+      </button>
 
-      <div className="bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer">
+      <button onClick={() => handleSettingClick('Linked Apps & Businesses')} className="w-full bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer border-0">
         <div className="flex items-center gap-4 text-base font-semibold text-[#111111]">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
@@ -208,10 +230,10 @@ export default function ProfileOverlay({ onClose }: ProfileOverlayProps) {
           </svg>
           <span>Linked Apps & Businesses</span>
         </div>
-        <span className="text-xs text-[#C7C7CC]">❯</span>
-      </div>
+        <span className="text-xs text-[#C7C7CC]">{loadingSettingName === 'Linked Apps & Businesses' ? '...' : '❯'}</span>
+      </button>
 
-      <div className="bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer">
+      <button onClick={() => handleSettingClick('Notifications')} className="w-full bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer border-0">
         <div className="flex items-center gap-4 text-base font-semibold text-[#111111]">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M18.8 4.3a9 9 0 0 0-12.6 0M7 16.4a5 5 0 0 1 10 0" />
@@ -219,10 +241,10 @@ export default function ProfileOverlay({ onClose }: ProfileOverlayProps) {
           </svg>
           <span>Notifications</span>
         </div>
-        <span className="text-xs text-[#C7C7CC]">❯</span>
-      </div>
+        <span className="text-xs text-[#C7C7CC]">{loadingSettingName === 'Notifications' ? '...' : '❯'}</span>
+      </button>
 
-      <div className="bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer">
+      <button onClick={() => handleSettingClick('Themes')} className="w-full bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer border-0">
         <div className="flex items-center gap-4 text-base font-semibold text-[#111111]">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12z" />
@@ -230,10 +252,10 @@ export default function ProfileOverlay({ onClose }: ProfileOverlayProps) {
           </svg>
           <span>Themes</span>
         </div>
-        <span className="text-xs text-[#C7C7CC]">❯</span>
-      </div>
+        <span className="text-xs text-[#C7C7CC]">{loadingSettingName === 'Themes' ? '...' : '❯'}</span>
+      </button>
 
-      <div className="bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer">
+      <button onClick={() => handleSettingClick('Support')} className="w-full bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer border-0">
         <div className="flex items-center gap-4 text-base font-semibold text-[#111111]">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -243,8 +265,8 @@ export default function ProfileOverlay({ onClose }: ProfileOverlayProps) {
           </svg>
           <span>Support</span>
         </div>
-        <span className="text-xs text-[#C7C7CC]">❯</span>
-      </div>
+        <span className="text-xs text-[#C7C7CC]">{loadingSettingName === 'Support' ? '...' : '❯'}</span>
+      </button>
 
       {/* Log Out Button */}
       <div className="px-4 mt-4 mb-6">

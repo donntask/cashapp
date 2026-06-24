@@ -4,9 +4,11 @@ interface BottomNavbarProps {
   activeTab: 'money' | 'paypad' | 'activity';
   onTabChange: (tab: 'money' | 'paypad' | 'activity') => void;
   isPayPadActive: boolean;
+  canGoBack?: boolean;
+  onGoBack?: () => void;
 }
 
-export default function BottomNavbar({ activeTab, onTabChange, isPayPadActive }: BottomNavbarProps) {
+export default function BottomNavbar({ activeTab, onTabChange, isPayPadActive, canGoBack = false, onGoBack }: BottomNavbarProps) {
   const navStyle = isPayPadActive
     ? 'bg-[#00D632] border-t-[#00b029]'
     : 'bg-white border-t-[#E5E7EB]';
@@ -17,6 +19,23 @@ export default function BottomNavbar({ activeTab, onTabChange, isPayPadActive }:
     }
     return isActive ? 'text-[#111111]' : 'text-[#A1A1AA]';
   };
+
+  // Show back button instead of navbar when canGoBack is true
+  if (canGoBack) {
+    return (
+      <div className="h-[70px] bg-white border-t border-[#E5E7EB] flex items-center px-6 z-50">
+        <button
+          onClick={onGoBack}
+          className="flex items-center gap-2 text-[#111111] font-semibold cursor-pointer bg-none border-0 text-base"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+          Back
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className={`h-[70px] ${navStyle} border-t flex justify-around items-center z-50 pb-1`}>
