@@ -247,20 +247,22 @@ export default function ProfileOverlay({ onClose }: ProfileOverlayProps) {
       </div>
 
       {/* Log Out Button */}
-      <button
-        onClick={() => {
-          try {
-            localStorage.removeItem('bushfi_auth_data');
-            localStorage.removeItem('bushfi_app_data');
-            window.location.href = '/';
-          } catch (error) {
-            console.error('[v0] Failed to log out:', error);
-          }
-        }}
-        className="mx-4 mt-4 mb-6 h-12 w-full bg-[#FF3B30] text-white font-bold text-base rounded-full border-0 cursor-pointer hover:bg-[#E63028] active:bg-[#D41F1F]"
-      >
-        Log Out
-      </button>
+      <div className="px-4 mt-4 mb-6">
+        <button
+          onClick={() => {
+            try {
+              localStorage.removeItem('bushfi_auth_data');
+              localStorage.removeItem('bushfi_app_data');
+              window.location.href = '/';
+            } catch (error) {
+              console.error('[v0] Failed to log out:', error);
+            }
+          }}
+          className="h-12 w-full bg-[#FF3B30] text-white font-bold text-base rounded-full border-0 cursor-pointer hover:bg-[#E63028] active:bg-[#D41F1F] truncate"
+        >
+          Log Out
+        </button>
+      </div>
     </div>
   );
 }

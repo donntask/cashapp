@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import MoneyPage from './pages/money-page';
 import PayPadPage from './pages/paypad-page';
 import ActivityPage from './pages/activity-page';
@@ -12,7 +12,31 @@ import { useAuth } from '@/contexts/auth-context';
 
 export default function BushFiApp() {
   const { isAuthenticated } = useAuth();
-  const [authFlowComplete, setAuthFlowComplete] = useState(isAuthenticated);
+  const [authFlowComplete, setAuthFlowComplete] = useState(false);
+
+  // Check for existing logged-in user on mount
+  useEffect(() => {
+    try {
+      const authData = localStorage.getItem('bushfi_auth_data');
+      const appData = localStorage.getItem('bushfi_app_data');
+      
+      // If user data exists in localStorage, they should remain logged in
+      if (authData && appData) {
+        const parsed = JSON.parse(authData);
+        if (parsed && Object.keys(parsed).length > 0) {
+          setAuthFlowComplete(true);
+          return;
+        }
+      }
+      
+      // Otherwise check if user is authenticated via auth context
+      if (isAuthenticated) {
+        setAuthFlowComplete(true);
+      }
+    } catch (error) {
+      console.error('[v0] Error checking persistent auth:', error);
+    }
+  }, [isAuthenticated]);
   const [activeTab, setActiveTab] = useState<'money' | 'paypad' | 'activity'>('money');
   const [showProfile, setShowProfile] = useState(false);
   const [showPaymentFlow, setShowPaymentFlow] = useState(false);
