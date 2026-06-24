@@ -53,10 +53,10 @@ export default function MoneyPage({ onOpenProfile }: MoneyPageProps) {
         </div>
         <div className="text-5xl font-black text-[#111111] mb-4 leading-tight">{formatCurrency(cashBalance)}</div>
         <div className="flex gap-2">
-          <button className="flex-1 h-10 bg-[#F4F4F6] text-[#111111] text-xs font-semibold border-0 rounded-full cursor-pointer">
+          <button className="flex-1 h-10 bg-[#F4F4F6] text-[#111111] text-xs font-bold border-0 rounded-full cursor-pointer">
             Add Cash
           </button>
-          <button className="flex-1 h-10 bg-[#F4F4F6] text-[#111111] text-xs font-semibold border-0 rounded-full cursor-pointer">
+          <button className="flex-1 h-10 bg-[#F4F4F6] text-[#111111] text-xs font-bold border-0 rounded-full cursor-pointer">
             Cash Out
           </button>
         </div>
