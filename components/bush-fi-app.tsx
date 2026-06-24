@@ -64,12 +64,14 @@ export default function BushFiApp() {
         />
       )}
 
-      {/* Bottom Navigation */}
-      <BottomNavbar
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        isPayPadActive={activeTab === 'paypad'}
-      />
+      {/* Bottom Navigation - only show when no payment flow active */}
+      {!showPaymentFlow && (
+        <BottomNavbar
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          isPayPadActive={activeTab === 'paypad'}
+        />
+      )}
     </div>
   );
 }
