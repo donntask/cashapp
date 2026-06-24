@@ -1,10 +1,43 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
 interface ActivityPageProps {
   onOpenProfile: () => void;
 }
 
+interface Transaction {
+  id: string;
+  type: string;
+  amount: number;
+  recipient: string;
+  note: string;
+  timestamp: number;
+  status: string;
+}
+
 export default function ActivityPage({ onOpenProfile }: ActivityPageProps) {
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  useEffect(() => {
+    try {
+      const appData = localStorage.getItem('bushfi_app_data');
+      if (appData) {
+        const data = JSON.parse(appData);
+        setTransactions(data.transactions || []);
+      }
+    } catch (error) {
+      console.error('[v0] Failed to load transactions:', error);
+    }
+  }, []);
+
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  };
+
+  const completedTxs = transactions.filter(tx => tx.status === 'completed');
+  const pendingTxs = transactions.filter(tx => tx.status === 'pending');
   return (
     <div className="flex flex-col w-full h-full">
       {/* Header */}
@@ -63,73 +96,54 @@ export default function ActivityPage({ onOpenProfile }: ActivityPageProps) {
       {/* Transaction Sections */}
       <div className="flex-1 overflow-y-auto">
         {/* Pending Section */}
-        <div className="text-xs font-bold uppercase text-[#8E8E93] px-4 py-3 border-b border-black/2">
-          Pending
-        </div>
-        <div className="bg-white px-4 py-3 flex items-center justify-between border-b border-black/2">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center text-white font-bold">
-              L
+        {pendingTxs.length > 0 && (
+          <>
+            <div className="text-xs font-bold uppercase text-[#8E8E93] px-4 py-3 border-b border-black/2">
+              PENDING
             </div>
-            <div>
-              <div className="text-base font-semibold text-[#111111]">
-                Lupe Ruelas <span className="text-xs">🏢</span>
+            {pendingTxs.map((tx) => (
+              <div key={tx.id} className="bg-white px-4 py-3 flex items-center justify-between border-b border-black/2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center text-white font-bold">
+                    {tx.recipient.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="text-base font-semibold text-[#111111]">{tx.recipient}</div>
+                    <div className="text-xs text-[#8E8E93]">⬞ {tx.type}</div>
+                  </div>
+                </div>
+                <div className="text-base font-medium text-[#8E8E93]">${tx.amount.toFixed(2)}</div>
               </div>
-              <div className="text-xs text-[#8E8E93]">⬞ Refund Requested</div>
-            </div>
-          </div>
-          <div className="text-base font-medium text-[#8E8E93]">$19</div>
-        </div>
+            ))}
+          </>
+        )}
 
         {/* Completed Section */}
-        <div className="text-xs font-bold uppercase text-[#8E8E93] px-4 py-3 border-b border-black/2">
-          Completed
-        </div>
-
-        <div className="bg-white px-4 py-3 flex items-center justify-between border-b border-black/2">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold">
-              B
+        {completedTxs.length > 0 && (
+          <>
+            <div className="text-xs font-bold uppercase text-[#8E8E93] px-4 py-3 border-b border-black/2">
+              Completed
             </div>
-            <div>
-              <div className="text-base font-semibold text-[#111111]">
-                Business <span>🏢</span>
+            {completedTxs.map((tx) => (
+              <div key={tx.id} className="bg-white px-4 py-3 flex items-center justify-between border-b border-black/2">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold">
+                    {tx.recipient.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <div className="text-base font-semibold text-[#111111]">{tx.recipient}</div>
+                    <div className="text-xs text-[#8E8E93]">At {formatDate(tx.timestamp)}</div>
+                  </div>
+                </div>
+                <div className="text-base font-bold text-[#111111]">${tx.amount.toFixed(2)}</div>
               </div>
-              <div className="text-xs text-[#8E8E93]">At 5:28 PM</div>
-            </div>
-          </div>
-          <div className="text-base font-bold text-[#111111]">$25</div>
-        </div>
+            ))}
+          </>
+        )}
 
-        <div className="bg-white px-4 py-3 flex items-center justify-between border-b border-black/2">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white font-bold">
-              $
-            </div>
-            <div>
-              <div className="text-base font-semibold text-[#111111]">Cash Out</div>
-              <div className="text-xs text-[#8E8E93]">Coastal Community Bank</div>
-            </div>
-          </div>
-          <div className="text-base font-bold text-[#111111]">$30</div>
-        </div>
-
-        <div className="bg-white px-4 py-3 flex items-center justify-between border-b border-black/2">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center text-white font-bold">
-              C
-            </div>
-            <div>
-              <div className="text-base font-semibold text-[#111111]">Christina M Cravens</div>
-              <div className="text-xs text-[#8E8E93]">At 3:40 PM</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="border border-[#E5E7EB] px-2 py-1 rounded-3xl text-xs font-semibold text-green-600">
-              💚 $60
-            </span>
-          </div>
-        </div>
+        {transactions.length === 0 && (
+          <div className="text-center text-[#8E8E93] py-8">No transactions yet</div>
+        )}
       </div>
     </div>
   );

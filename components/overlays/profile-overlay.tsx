@@ -1,10 +1,38 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+
+interface UserData {
+  firstName: string;
+  lastName: string;
+  cashtag: string;
+  phoneNumber: string;
+  email: string;
+  zipCode: string;
+}
+
 interface ProfileOverlayProps {
   onClose: () => void;
 }
 
 export default function ProfileOverlay({ onClose }: ProfileOverlayProps) {
+  const [user, setUser] = useState<UserData | null>(null);
+
+  useEffect(() => {
+    try {
+      const appData = localStorage.getItem('bushfi_app_data');
+      if (appData) {
+        const data = JSON.parse(appData);
+        setUser(data.user || null);
+      }
+    } catch (error) {
+      console.error('[v0] Failed to load user data:', error);
+    }
+  }, []);
+
+  const displayName = user ? `${user.firstName}${user.lastName}`.slice(0, 12) : 'User';
+  const cashtag = user?.cashtag || 'user';
+  const phoneOrEmail = user?.phoneNumber || user?.email || 'Add contact info';
   return (
     <div className="absolute inset-0 bg-[#F4F4F6] z-40 flex flex-col overflow-y-auto">
       {/* Header */}
@@ -49,7 +77,7 @@ export default function ProfileOverlay({ onClose }: ProfileOverlayProps) {
 
         {/* Name and Cashtag */}
         <div className="text-2xl font-bold text-[#111111] flex items-center gap-1.5 mb-1">
-          Apple1247
+          {displayName}
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#00D632" strokeWidth="3">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
             <line x1="9" y1="3" x2="9" y2="21" />
@@ -58,7 +86,7 @@ export default function ProfileOverlay({ onClose }: ProfileOverlayProps) {
             <line x1="3" y1="15" x2="21" y2="15" />
           </svg>
         </div>
-        <div className="text-sm text-[#8E8E93] mb-5">$Apple1247</div>
+        <div className="text-sm text-[#8E8E93] mb-5">${cashtag}</div>
 
         <button className="w-full h-11 bg-[#F4F4F6] border-0 rounded-full text-sm font-semibold text-[#111111] cursor-pointer">
           Edit Profile
