@@ -18,6 +18,7 @@ interface Transaction {
 
 export default function ActivityPage({ onOpenProfile }: ActivityPageProps) {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
 
   useEffect(() => {
     try {
@@ -33,11 +34,82 @@ export default function ActivityPage({ onOpenProfile }: ActivityPageProps) {
 
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    const today = new Date();
+    const isToday = date.toDateString() === today.toDateString();
+    if (isToday) {
+      return `Today at ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
+    }
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' at ' + date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  };
+
+  const getTransactionDirection = (type: string) => {
+    const isPayment = type.toLowerCase().includes('pay');
+    return isPayment ? { label: '-', icon: '↓', color: 'text-red-500' } : { label: '+', icon: '↑', color: 'text-green-500' };
   };
 
   const completedTxs = transactions.filter(tx => tx.status === 'completed');
   const pendingTxs = transactions.filter(tx => tx.status === 'pending');
+
+  // Transaction Detail Modal
+  if (selectedTransaction) {
+    const direction = getTransactionDirection(selectedTransaction.type);
+    const isPayment = selectedTransaction.type.toLowerCase().includes('pay');
+    
+    return (
+      <div className="absolute inset-0 bg-black/40 z-50 flex flex-col items-center justify-center">
+        <div className="bg-white rounded-3xl w-full mx-4 max-w-sm p-8 flex flex-col items-center gap-6">
+          {/* Close Button */}
+          <button
+            onClick={() => setSelectedTransaction(null)}
+            className="absolute top-6 right-6 text-[#8E8E93] bg-none border-0 cursor-pointer text-2xl"
+          >
+            ✕
+          </button>
+
+          {/* Avatar */}
+          <div className="w-16 h-16 rounded-full bg-blue-500 flex items-center justify-center text-white text-2xl font-bold">
+            {selectedTransaction.recipient.charAt(0).toUpperCase()}
+          </div>
+
+          {/* Transaction Info */}
+          <div className="text-center">
+            <div className="text-base text-[#8E8E93] font-medium">
+              {isPayment ? 'Payment to' : 'Payment from'} <span className="font-bold text-[#111111]">${selectedTransaction.recipient}</span>
+            </div>
+          </div>
+
+          {/* Amount */}
+          <div className="text-center">
+            <div className="text-5xl font-black text-[#111111]">${selectedTransaction.amount.toFixed(2)}</div>
+            {selectedTransaction.note && (
+              <div className="text-sm text-[#8E8E93] mt-2">For {selectedTransaction.note}</div>
+            )}
+            <div className="text-xs text-[#8E8E93] mt-2">{formatDate(selectedTransaction.timestamp)}</div>
+          </div>
+
+          {/* Status Badge or Action */}
+          {selectedTransaction.status === 'completed' ? (
+            <div className="w-full bg-[#00D632] text-white rounded-full py-3 text-center font-bold flex items-center justify-center gap-2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+              Completed
+            </div>
+          ) : (
+            <div className="w-full bg-[#00D632] text-white rounded-full py-3 text-center font-bold">
+              Reply
+            </div>
+          )}
+
+          {/* Web Receipt Button */}
+          <button className="w-full bg-white border border-[#E5E7EB] text-[#111111] rounded-full py-3 font-bold cursor-pointer border-0 hover:bg-[#F4F4F6]">
+            Web Receipt
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col w-full h-full">
       {/* Header */}
@@ -101,20 +173,30 @@ export default function ActivityPage({ onOpenProfile }: ActivityPageProps) {
             <div className="text-xs font-bold uppercase text-[#8E8E93] px-4 py-3 border-b border-black/2">
               PENDING
             </div>
-            {pendingTxs.map((tx) => (
-              <div key={tx.id} className="bg-white px-4 py-3 flex items-center justify-between border-b border-black/2">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center text-white font-bold">
-                    {tx.recipient.charAt(0).toUpperCase()}
+            {pendingTxs.map((tx) => {
+              const direction = getTransactionDirection(tx.type);
+              return (
+                <button
+                  key={tx.id}
+                  onClick={() => setSelectedTransaction(tx)}
+                  className="w-full bg-white px-4 py-3 flex items-center justify-between border-b border-black/2 cursor-pointer border-0 hover:bg-[#F9F9F9]"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center text-white font-bold">
+                      {tx.recipient.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="text-base font-semibold text-[#111111]">{tx.recipient}</div>
+                      <div className="text-xs text-[#8E8E93] flex items-center gap-1">
+                        <span className={`${direction.color} font-bold`}>{direction.icon}</span>
+                        {tx.type}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-base font-semibold text-[#111111]">{tx.recipient}</div>
-                    <div className="text-xs text-[#8E8E93]">⬞ {tx.type}</div>
-                  </div>
-                </div>
-                <div className="text-base font-medium text-[#8E8E93]">${tx.amount.toFixed(2)}</div>
-              </div>
-            ))}
+                  <div className={`text-base font-bold ${direction.color}`}>{direction.label}${tx.amount.toFixed(2)}</div>
+                </button>
+              );
+            })}
           </>
         )}
 
@@ -124,20 +206,30 @@ export default function ActivityPage({ onOpenProfile }: ActivityPageProps) {
             <div className="text-xs font-bold uppercase text-[#8E8E93] px-4 py-3 border-b border-black/2">
               Completed
             </div>
-            {completedTxs.map((tx) => (
-              <div key={tx.id} className="bg-white px-4 py-3 flex items-center justify-between border-b border-black/2">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold">
-                    {tx.recipient.charAt(0).toUpperCase()}
+            {completedTxs.map((tx) => {
+              const direction = getTransactionDirection(tx.type);
+              return (
+                <button
+                  key={tx.id}
+                  onClick={() => setSelectedTransaction(tx)}
+                  className="w-full bg-white px-4 py-3 flex items-center justify-between border-b border-black/2 cursor-pointer border-0 hover:bg-[#F9F9F9]"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold">
+                      {tx.recipient.charAt(0).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="text-base font-semibold text-[#111111]">{tx.recipient}</div>
+                      <div className="text-xs text-[#8E8E93] flex items-center gap-1">
+                        <span className={`${direction.color} font-bold`}>{direction.icon}</span>
+                        {formatDate(tx.timestamp)}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <div className="text-base font-semibold text-[#111111]">{tx.recipient}</div>
-                    <div className="text-xs text-[#8E8E93]">At {formatDate(tx.timestamp)}</div>
-                  </div>
-                </div>
-                <div className="text-base font-bold text-[#111111]">${tx.amount.toFixed(2)}</div>
-              </div>
-            ))}
+                  <div className={`text-base font-bold ${direction.color}`}>{direction.label}${tx.amount.toFixed(2)}</div>
+                </button>
+              );
+            })}
           </>
         )}
 
