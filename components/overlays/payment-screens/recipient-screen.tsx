@@ -68,7 +68,7 @@ export default function RecipientScreen({
         </button>
         <div className="flex-1 text-center">
           <div className="text-base font-bold text-[#111111]">${amount}</div>
-          <div className="text-xs text-[#8E8E93]">{transactionType === 'Pay' ? 'Bank of America ▾' : 'Cash Balance ▾'}</div>
+          <div className="text-xs text-[#8E8E93]">Cash Balance ▾</div>
         </div>
         <button
           onClick={handlePay}
@@ -83,10 +83,10 @@ export default function RecipientScreen({
 
         {/* To Input */}
         <div className="flex items-center px-6 py-4 border-b border-[#E5E7EB] gap-3">
-          <span className="font-semibold w-10 text-base">To</span>
+          <span className="font-semibold w-10 text-base text-[#111111]">To</span>
           <input
             type="text"
-            className="flex-1 border-0 outline-none text-base text-[#111111]"
+            className="flex-1 border-0 outline-none text-base text-[#111111] placeholder-[#B3B3B7] bg-white"
             placeholder="Name, $Cashtag, Phone, Email"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
@@ -95,10 +95,10 @@ export default function RecipientScreen({
 
         {/* For Input */}
         <div className="flex items-center px-6 py-4 border-b border-[#E5E7EB] gap-3">
-          <span className="font-semibold w-10 text-base">For</span>
+          <span className="font-semibold w-10 text-base text-[#111111]">For</span>
           <input
             type="text"
-            className="flex-1 border-0 outline-none text-base text-[#111111]"
+            className="flex-1 border-0 outline-none text-base text-[#111111] placeholder-[#B3B3B7] bg-white"
             placeholder="Add a note"
           />
         </div>
