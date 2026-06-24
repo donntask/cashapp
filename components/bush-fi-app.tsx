@@ -7,8 +7,11 @@ import ActivityPage from './pages/activity-page';
 import ProfileOverlay from './overlays/profile-overlay';
 import PaymentFlow from './overlays/payment-flow';
 import BottomNavbar from './bottom-navbar';
+import AuthFlow from './auth/auth-flow';
+import { useAuth } from '@/contexts/auth-context';
 
 export default function BushFiApp() {
+  const { isAuthenticated } = useAuth();
   const [activeTab, setActiveTab] = useState<'money' | 'paypad' | 'activity'>('money');
   const [showProfile, setShowProfile] = useState(false);
   const [showPaymentFlow, setShowPaymentFlow] = useState(false);
@@ -27,6 +30,10 @@ export default function BushFiApp() {
     setShowPaymentFlow(false);
     setPadAmount('0');
   };
+
+  if (!isAuthenticated) {
+    return <AuthFlow onAuthComplete={() => {}} />;
+  }
 
   return (
     <div className="relative w-full max-w-[412px] h-screen max-h-[844px] bg-[#F4F4F6] flex flex-col shadow-2xl overflow-hidden">
