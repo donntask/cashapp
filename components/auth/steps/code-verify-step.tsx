@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { useAuth } from '@/contexts/auth-context';
 
 interface CodeVerifyStepProps {
   verificationEmail: string;
@@ -11,7 +12,10 @@ export default function CodeVerifyStep({
   verificationEmail,
   onNext,
 }: CodeVerifyStepProps) {
+  const { setIsOtpVerified, setIsNewUser, updateAuthData } = useAuth();
   const [code, setCode] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const input = e.target.value.replace(/\D/g, '');
@@ -19,6 +23,68 @@ export default function CodeVerifyStep({
       setCode(input.substring(0, 3) + '-' + input.substring(3, 6));
     } else {
       setCode(input);
+    }
+  };
+
+  const handleVerify = async () => {
+    try {
+      setIsLoading(true);
+      setError('');
+
+      // Remove the dash from code for API
+      const otpCode = code.replace('-', '');
+
+      // Get registered users from localStorage
+      let registeredUsers = [];
+      try {
+        const stored = localStorage.getItem('bushfi_registered_users');
+        registeredUsers = stored ? JSON.parse(stored) : [];
+      } catch (e) {
+        console.error('[v0] Error reading registered users:', e);
+      }
+
+      const response = await fetch('/api/auth/verify-otp', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: verificationEmail,
+          otp: otpCode,
+          registeredUsers,
+        }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        setError(data.error || 'Failed to verify OTP');
+        setIsLoading(false);
+        return;
+      }
+
+      const data = await response.json();
+
+      // Store the OTP verification state and user type
+      setIsOtpVerified(true);
+      setIsNewUser(data.isNewUser);
+      updateAuthData({ email: verificationEmail });
+
+      // Register the user if new and store in localStorage
+      if (data.isNewUser) {
+        registeredUsers.push(verificationEmail);
+        try {
+          localStorage.setItem('bushfi_registered_users', JSON.stringify(registeredUsers));
+        } catch (e) {
+          console.error('[v0] Error storing registered users:', e);
+        }
+      }
+
+      setIsLoading(false);
+      onNext();
+    } catch (err) {
+      console.error('[v0] Error verifying OTP:', err);
+      setError('Failed to verify OTP. Please try again.');
+      setIsLoading(false);
     }
   };
 
@@ -44,13 +110,19 @@ export default function CodeVerifyStep({
         </div>
       </div>
 
+      {error && (
+        <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
+          <p className="text-sm text-red-700">{error}</p>
+        </div>
+      )}
+
       <div className="mt-auto">
         <button
-          onClick={onNext}
-          disabled={code.length < 7}
+          onClick={handleVerify}
+          disabled={code.length < 7 || isLoading}
           className="w-full px-7 py-3 rounded-full text-base font-semibold border-none cursor-pointer bg-[#00D632] text-white hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Next
+          {isLoading ? 'Verifying...' : 'Verify'}
         </button>
       </div>
     </>

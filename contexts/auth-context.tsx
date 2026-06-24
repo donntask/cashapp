@@ -18,6 +18,12 @@ export interface AuthContextType {
   resetAuth: () => void;
   isAuthenticated: boolean;
   completeAuth: () => void;
+  isOtpVerified: boolean;
+  setIsOtpVerified: (verified: boolean) => void;
+  isNewUser: boolean;
+  setIsNewUser: (isNew: boolean) => void;
+  verifiedEmail: string;
+  setVerifiedEmail: (email: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,6 +43,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(
     typeof window !== 'undefined' && window.location.hash === '#dev'
   );
+  const [isOtpVerified, setIsOtpVerified] = useState(false);
+  const [isNewUser, setIsNewUser] = useState(true);
+  const [verifiedEmail, setVerifiedEmail] = useState('');
 
   // Load auth data from localStorage on mount
   useEffect(() => {
@@ -112,6 +121,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     resetAuth,
     isAuthenticated,
     completeAuth,
+    isOtpVerified,
+    setIsOtpVerified,
+    isNewUser,
+    setIsNewUser,
+    verifiedEmail,
+    setVerifiedEmail,
   };
 
   return (

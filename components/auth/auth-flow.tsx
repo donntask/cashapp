@@ -30,7 +30,7 @@ interface AuthFlowProps {
 export default function AuthFlow({ onAuthComplete }: AuthFlowProps) {
   const [currentStep, setCurrentStep] = useState<AuthStep>('auth-start');
   const [history, setHistory] = useState<AuthStep[]>([]);
-  const { authData, updateAuthData, completeAuth } = useAuth();
+  const { authData, updateAuthData, completeAuth, isOtpVerified, isNewUser } = useAuth();
   const [isEmailMode, setIsEmailMode] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState('');
 
@@ -127,7 +127,18 @@ export default function AuthFlow({ onAuthComplete }: AuthFlowProps) {
         {currentStep === 'code-verify' && (
           <CodeVerifyStep
             verificationEmail={verificationEmail}
-            onNext={() => navigateTo('debit-card')}
+            onNext={() => {
+              // If OTP is verified and user is NOT new, go directly to dashboard
+              if (isOtpVerified && !isNewUser) {
+                completeAuth();
+                setTimeout(() => {
+                  onAuthComplete();
+                }, 500);
+              } else {
+                // For new users, continue with registration steps
+                navigateTo('debit-card');
+              }
+            }}
           />
         )}
 
