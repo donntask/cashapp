@@ -5,12 +5,14 @@ import { useEffect } from 'react';
 interface StatusScreenProps {
   amount: string;
   transactionType: 'Pay' | 'Request';
+  recipient: string;
   onClose: () => void;
 }
 
 export default function StatusScreen({
   amount,
   transactionType,
+  recipient,
   onClose,
 }: StatusScreenProps) {
   // Save transaction to localStorage on mount
@@ -23,7 +25,7 @@ export default function StatusScreen({
         id: `tx_${Date.now()}`,
         type: transactionType.toLowerCase(),
         amount: parseFloat(amount),
-        recipient: 'Pending',
+        recipient: recipient || 'Unknown',
         note: '',
         timestamp: Date.now(),
         status: 'completed',
@@ -39,24 +41,29 @@ export default function StatusScreen({
     } catch (error) {
       console.error('[v0] Failed to save transaction:', error);
     }
-  }, [amount, transactionType]);
+  }, [amount, transactionType, recipient]);
 
   const message =
     transactionType === 'Pay'
-      ? `Sent! $${amount} will be deposited once transaction completes.`
-      : `Requested! $${amount} payment request sent.`;
+      ? `Sent! $${amount} will be deposited once ${recipient} accepts this payment.`
+      : `Requested! $${amount} payment request sent to ${recipient}.`;
 
   return (
-    <div className="flex flex-col w-full h-full">
+    <div className="flex flex-col w-full h-full bg-white">
       {/* Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-10 text-center">
-        <div className="w-18 h-18 bg-[#00D632] text-white rounded-full flex items-center justify-center text-4xl font-bold mb-6">
+      <div className="flex-1 flex flex-col items-center justify-center px-8 text-center pb-20">
+        {/* Green Checkmark Circle */}
+        <div className="w-20 h-20 bg-[#00D632] text-white rounded-full flex items-center justify-center text-5xl font-bold mb-8 flex-shrink-0">
           ✓
         </div>
-        <div className="text-2xl font-bold text-[#111111] mb-8 leading-snug">{message}</div>
+        {/* Message */}
+        <div className="text-lg text-[#111111] mb-16 leading-relaxed font-medium">
+          {message}
+        </div>
+        {/* Done Button */}
         <button
           onClick={onClose}
-          className="w-full max-w-[260px] h-12 bg-[#00D632] text-white rounded-full border-0 font-semibold text-base cursor-pointer"
+          className="w-full max-w-xs h-14 bg-[#00D632] text-white rounded-full border-0 font-bold text-lg cursor-pointer flex-shrink-0 hover:bg-[#00C428] active:bg-[#00B820]"
         >
           Done
         </button>

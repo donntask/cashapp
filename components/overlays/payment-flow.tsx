@@ -50,7 +50,7 @@ export default function PaymentFlow({
         />
       )}
       {step === 'status' && (
-        <StatusScreen amount={amount} transactionType={transactionType} onClose={onClose} />
+        <StatusScreen amount={amount} transactionType={transactionType} recipient={recipient} onClose={onClose} />
       )}
     </div>
   );
