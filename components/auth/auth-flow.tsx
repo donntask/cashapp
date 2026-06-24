@@ -92,11 +92,11 @@ export default function AuthFlow({ onAuthComplete }: AuthFlowProps) {
         <div className="flex-1" />
         {canShowClose ? (
           <button
-            onClick={handleWelcomeComplete}
-            className="text-2xl text-gray-900 bg-none border-none cursor-pointer"
-            aria-label="Close"
+            onClick={() => navigateTo('welcome-final')}
+            className="text-base font-semibold text-gray-900 bg-none border-none cursor-pointer"
+            aria-label="Skip"
           >
-            ×
+            Skip
           </button>
         ) : currentStep !== 'welcome-final' ? (
           <button className="text-2xl text-gray-900 bg-none border-none cursor-pointer">
