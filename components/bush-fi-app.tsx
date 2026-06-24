@@ -36,10 +36,13 @@ export default function BushFiApp() {
     return <AuthFlow onAuthComplete={() => setAuthFlowComplete(true)} />;
   }
 
+  // Hide navbar when PayPad page is active, payment flow is open, or profile is open
+  const shouldHideNavbar = activeTab === 'paypad' || showPaymentFlow || showProfile;
+  
   return (
     <div className="relative w-full max-w-[412px] h-screen max-h-[844px] bg-[#F4F4F6] flex flex-col shadow-2xl overflow-hidden">
-      {/* Page Views - Account for fixed navbar height at bottom */}
-      <div className="flex-1 overflow-y-auto pb-[70px]">
+      {/* Page Views - Account for fixed navbar height at bottom when navbar is visible */}
+      <div className={`flex-1 overflow-y-auto ${!shouldHideNavbar ? 'pb-[70px]' : ''}`}>
         {activeTab === 'money' && <MoneyPage onOpenProfile={() => setShowProfile(true)} />}
         {activeTab === 'paypad' && (
           <PayPadPage
@@ -64,14 +67,16 @@ export default function BushFiApp() {
         />
       )}
 
-      {/* Bottom Navigation - Always visible and fixed at bottom */}
-      <div className="absolute bottom-0 left-0 right-0 z-50">
-        <BottomNavbar
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          isPayPadActive={activeTab === 'paypad'}
-        />
-      </div>
+      {/* Bottom Navigation - Hide when PayPad page, payment flow, or profile is open */}
+      {!shouldHideNavbar && (
+        <div className="absolute bottom-0 left-0 right-0 z-50">
+          <BottomNavbar
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            isPayPadActive={activeTab === 'paypad'}
+          />
+        </div>
+      )}
     </div>
   );
 }
