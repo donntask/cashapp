@@ -132,22 +132,22 @@ export default function PayPadPage({
       <div className="flex justify-center gap-8 px-5 pb-4 flex-shrink-0">
         <button
           onClick={onNavigateToMoney}
-          className="flex items-center justify-center text-white hover:opacity-75 cursor-pointer bg-none border-0"
+          className="flex items-center justify-center text-white bg-black/15 hover:bg-black/20 cursor-pointer border-0 rounded-full w-12 h-12"
           aria-label="Home"
         >
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
             <polyline points="9 22 9 12 15 12 15 22" />
           </svg>
         </button>
         <button
           onClick={onNavigateToActivity}
-          className="flex items-center justify-center text-white hover:opacity-75 cursor-pointer bg-none border-0"
+          className="flex items-center justify-center text-white bg-black/15 hover:bg-black/20 cursor-pointer border-0 rounded-full w-12 h-12"
           aria-label="Activity"
         >
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <polyline points="23 6 13.5 15.5 8.5 10.5 1 17" />
-            <polyline points="17 6 23 6 23 12" />
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="10" />
+            <polyline points="12 6 12 12 16 14" />
           </svg>
         </button>
       </div>
