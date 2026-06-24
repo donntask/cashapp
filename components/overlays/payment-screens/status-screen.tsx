@@ -18,7 +18,7 @@ export default function StatusScreen({
   // Save transaction to localStorage on mount
   useEffect(() => {
     try {
-      const appData = localStorage.getItem('bushfi_app_data');
+      const appData = localStorage.getItem('cashapp_app_data');
       let data = appData ? JSON.parse(appData) : { transactions: [], cashBalance: 0, savingsBalance: 0, user: null, bankAccount: null, lastUpdated: Date.now() };
       
       const transaction = {
@@ -37,7 +37,7 @@ export default function StatusScreen({
       data.transactions.push(transaction);
       data.lastUpdated = Date.now();
       
-      localStorage.setItem('bushfi_app_data', JSON.stringify(data));
+      localStorage.setItem('cashapp_app_data', JSON.stringify(data));
     } catch (error) {
       console.error('[v0] Failed to save transaction:', error);
     }

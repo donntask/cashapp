@@ -10,15 +10,15 @@ import BottomNavbar from './bottom-navbar';
 import AuthFlow from './auth/auth-flow';
 import { useAuth } from '@/contexts/auth-context';
 
-export default function BushFiApp() {
+export default function CashApp() {
   const { isAuthenticated } = useAuth();
   const [authFlowComplete, setAuthFlowComplete] = useState(false);
 
   // Check for existing logged-in user on mount
   useEffect(() => {
     try {
-      const authData = localStorage.getItem('bushfi_auth_data');
-      const appData = localStorage.getItem('bushfi_app_data');
+      const authData = localStorage.getItem('cashapp_auth_data');
+      const appData = localStorage.getItem('cashapp_app_data');
       
       // If user data exists in localStorage, they should remain logged in
       if (authData && appData) {

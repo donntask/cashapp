@@ -12,7 +12,7 @@ export default function MoneyPage({ onOpenProfile }: MoneyPageProps) {
 
   useEffect(() => {
     try {
-      const appData = localStorage.getItem('bushfi_app_data');
+      const appData = localStorage.getItem('cashapp_app_data');
       if (appData) {
         const data = JSON.parse(appData);
         setCashBalance(data.cashBalance || 0);

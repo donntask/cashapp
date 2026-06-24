@@ -41,7 +41,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Load auth data from localStorage on mount
   useEffect(() => {
     try {
-      const stored = localStorage.getItem('bushfi_auth_data');
+      const stored = localStorage.getItem('cashapp_auth_data');
       if (stored) {
         const parsed = JSON.parse(stored);
         setAuthData(parsed);
@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const updated = { ...prev, ...data };
       // Persist to localStorage immediately
       try {
-        localStorage.setItem('bushfi_auth_data', JSON.stringify(updated));
+        localStorage.setItem('cashapp_auth_data', JSON.stringify(updated));
       } catch (error) {
         console.error('[v0] Failed to save auth data:', error);
       }
@@ -79,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthData(initialAuthState);
     setIsAuthenticated(false);
     try {
-      localStorage.removeItem('bushfi_auth_data');
+      localStorage.removeItem('cashapp_auth_data');
     } catch (error) {
       console.error('[v0] Failed to clear auth data:', error);
     }
@@ -89,7 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsAuthenticated(true);
     // Also save user data to app data storage
     try {
-      const appData = localStorage.getItem('bushfi_app_data');
+      const appData = localStorage.getItem('cashapp_app_data');
       let data = appData ? JSON.parse(appData) : { user: null, cashBalance: 0, savingsBalance: 0, bankAccount: null, transactions: [], lastUpdated: Date.now() };
       data.user = {
         firstName: authData.firstName,
@@ -100,7 +100,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         zipCode: authData.zipCode,
       };
       data.lastUpdated = Date.now();
-      localStorage.setItem('bushfi_app_data', JSON.stringify(data));
+      localStorage.setItem('cashapp_app_data', JSON.stringify(data));
     } catch (error) {
       console.error('[v0] Failed to save app data:', error);
     }

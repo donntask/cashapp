@@ -20,7 +20,7 @@ export default function ProfileOverlay({ onClose }: ProfileOverlayProps) {
 
   useEffect(() => {
     try {
-      const appData = localStorage.getItem('bushfi_app_data');
+      const appData = localStorage.getItem('cashapp_app_data');
       if (appData) {
         const data = JSON.parse(appData);
         setUser(data.user || null);
@@ -251,8 +251,8 @@ export default function ProfileOverlay({ onClose }: ProfileOverlayProps) {
         <button
           onClick={() => {
             try {
-              localStorage.removeItem('bushfi_auth_data');
-              localStorage.removeItem('bushfi_app_data');
+              localStorage.removeItem('cashapp_auth_data');
+              localStorage.removeItem('cashapp_app_data');
               window.location.href = '/';
             } catch (error) {
               console.error('[v0] Failed to log out:', error);

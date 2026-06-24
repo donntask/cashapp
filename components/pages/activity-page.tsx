@@ -21,7 +21,7 @@ export default function ActivityPage({ onOpenProfile }: ActivityPageProps) {
 
   useEffect(() => {
     try {
-      const appData = localStorage.getItem('bushfi_app_data');
+      const appData = localStorage.getItem('cashapp_app_data');
       if (appData) {
         const data = JSON.parse(appData);
         setTransactions(data.transactions || []);
