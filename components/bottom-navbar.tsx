@@ -68,12 +68,10 @@ export default function BottomNavbar({ activeTab, onTabChange, isPayPadActive, c
         onClick={() => onTabChange('paypad')}
         className={`flex flex-col items-center justify-center flex-1 h-full cursor-pointer ${getNavItemColor(activeTab === 'paypad')} relative`}
       >
-        <div className="w-16 h-16 rounded-full border-2 border-[#00D632] bg-[#00D632] flex items-center justify-center">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5">
-            <line x1="12" y1="1" x2="12" y2="23" />
-            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-          </svg>
-        </div>
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="black" strokeWidth="3.5">
+          <line x1="12" y1="1" x2="12" y2="23" />
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
         {activeTab === 'paypad' && (
           <div
             className={`absolute bottom-1 w-1 h-1 rounded-full ${isPayPadActive ? 'bg-white' : 'bg-[#111111]'}`}
