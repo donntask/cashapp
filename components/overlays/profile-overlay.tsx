@@ -55,6 +55,23 @@ export default function ProfileOverlay({ onClose, onSelectSetting }: ProfileOver
   const displayName = user ? `${user.firstName}${user.lastName}`.slice(0, 12) : 'User';
   const cashtag = user?.cashtag || 'user';
   const phoneOrEmail = user?.phoneNumber || user?.email || 'Add contact info';
+
+  // Show loading overlay when a setting is being loaded
+  if (loadingSettingName) {
+    return (
+      <div className="absolute inset-0 bg-[#F4F4F6] z-40 flex flex-col items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          {/* Green Loading Spinner */}
+          <div className="w-16 h-16 border-4 border-[#00D632] border-t-transparent rounded-full animate-spin"></div>
+          <div className="text-center">
+            <p className="text-sm font-semibold text-[#111111]">Loading {loadingSettingName}</p>
+            <p className="text-xs text-[#C7C7CC] mt-1">Redirecting to home...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="absolute inset-0 bg-[#F4F4F6] z-40 flex flex-col overflow-y-auto">
       {/* Header */}
@@ -154,7 +171,7 @@ export default function ProfileOverlay({ onClose, onSelectSetting }: ProfileOver
       <div className="text-xs font-bold uppercase text-[#8E8E93] px-6 py-3 mt-2">Account & Settings</div>
 
       <button onClick={() => handleSettingClick('Personal')} className="w-full bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer border-0">
-        <div className="flex items-center gap-4 text-base font-semibold text-[#111111]">
+        <div className="flex items-center gap-4 text-base font-bold text-[#111111]">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
             <circle cx="12" cy="7" r="4" />
@@ -165,7 +182,7 @@ export default function ProfileOverlay({ onClose, onSelectSetting }: ProfileOver
       </button>
 
       <button onClick={() => handleSettingClick('Favorites')} className="w-full bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer border-0">
-        <div className="flex items-center gap-4 text-base font-semibold text-[#111111]">
+        <div className="flex items-center gap-4 text-base font-bold text-[#111111]">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
           </svg>
@@ -175,7 +192,7 @@ export default function ProfileOverlay({ onClose, onSelectSetting }: ProfileOver
       </button>
 
       <button onClick={() => handleSettingClick('Linked Banks')} className="w-full bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer border-0">
-        <div className="flex items-center gap-4 text-base font-semibold text-[#111111]">
+        <div className="flex items-center gap-4 text-base font-bold text-[#111111]">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
             <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
@@ -186,7 +203,7 @@ export default function ProfileOverlay({ onClose, onSelectSetting }: ProfileOver
       </button>
 
       <button onClick={() => handleSettingClick('Security & Privacy')} className="w-full bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer border-0">
-        <div className="flex items-center gap-4 text-base font-semibold text-[#111111]">
+        <div className="flex items-center gap-4 text-base font-bold text-[#111111]">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
           </svg>
@@ -196,7 +213,7 @@ export default function ProfileOverlay({ onClose, onSelectSetting }: ProfileOver
       </button>
 
       <button onClick={() => handleSettingClick('Family')} className="w-full bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer border-0">
-        <div className="flex items-center gap-4 text-base font-semibold text-[#111111]">
+        <div className="flex items-center gap-4 text-base font-bold text-[#111111]">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
             <circle cx="9" cy="7" r="4" />
@@ -209,7 +226,7 @@ export default function ProfileOverlay({ onClose, onSelectSetting }: ProfileOver
       </button>
 
       <button onClick={() => handleSettingClick('Limits')} className="w-full bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer border-0">
-        <div className="flex items-center gap-4 text-base font-semibold text-[#111111]">
+        <div className="flex items-center gap-4 text-base font-bold text-[#111111]">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M21 4H3c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2z" />
             <polyline points="23 6 12 13 1 6" />
@@ -220,7 +237,7 @@ export default function ProfileOverlay({ onClose, onSelectSetting }: ProfileOver
       </button>
 
       <button onClick={() => handleSettingClick('Linked Apps & Businesses')} className="w-full bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer border-0">
-        <div className="flex items-center gap-4 text-base font-semibold text-[#111111]">
+        <div className="flex items-center gap-4 text-base font-bold text-[#111111]">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
             <line x1="9" y1="3" x2="9" y2="21" />
@@ -234,7 +251,7 @@ export default function ProfileOverlay({ onClose, onSelectSetting }: ProfileOver
       </button>
 
       <button onClick={() => handleSettingClick('Notifications')} className="w-full bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer border-0">
-        <div className="flex items-center gap-4 text-base font-semibold text-[#111111]">
+        <div className="flex items-center gap-4 text-base font-bold text-[#111111]">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M18.8 4.3a9 9 0 0 0-12.6 0M7 16.4a5 5 0 0 1 10 0" />
             <line x1="12" y1="20" x2="12" y2="20.01" />
@@ -245,7 +262,7 @@ export default function ProfileOverlay({ onClose, onSelectSetting }: ProfileOver
       </button>
 
       <button onClick={() => handleSettingClick('Themes')} className="w-full bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer border-0">
-        <div className="flex items-center gap-4 text-base font-semibold text-[#111111]">
+        <div className="flex items-center gap-4 text-base font-bold text-[#111111]">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M12 18a6 6 0 1 0 0-12 6 6 0 0 0 0 12z" />
             <path d="M12 7v5l3 2" />
@@ -256,7 +273,7 @@ export default function ProfileOverlay({ onClose, onSelectSetting }: ProfileOver
       </button>
 
       <button onClick={() => handleSettingClick('Support')} className="w-full bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer border-0">
-        <div className="flex items-center gap-4 text-base font-semibold text-[#111111]">
+        <div className="flex items-center gap-4 text-base font-bold text-[#111111]">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
             <polyline points="14 2 14 8 20 8" />

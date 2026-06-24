@@ -81,7 +81,7 @@ export default function CashApp() {
   const shouldHideNavbar = activeTab === 'paypad' || showPaymentFlow || showProfile;
   
   return (
-    <div className="relative w-full max-w-[412px] h-screen max-h-[844px] bg-[#F4F4F6] flex flex-col shadow-2xl overflow-hidden">
+    <div className="relative w-full max-w-[412px] h-screen max-h-[844px] bg-[#F4F4F6] flex flex-col shadow-2xl overflow-hidden select-none" style={{ WebkitUserSelect: 'none', userSelect: 'none' }}>
       {/* Page Views - Account for fixed navbar height at bottom when navbar is visible */}
       <div className={`flex-1 overflow-y-auto ${!shouldHideNavbar ? 'pb-[70px]' : ''}`}>
         {activeTab === 'money' && <MoneyPage onOpenProfile={() => setShowProfile(true)} />}
@@ -91,6 +91,8 @@ export default function CashApp() {
             onAmountChange={setPadAmount}
             onOpenProfile={() => setShowProfile(true)}
             onInitiatePayment={handleInitiatePayment}
+            onNavigateToMoney={() => setActiveTab('money')}
+            onNavigateToActivity={() => setActiveTab('activity')}
           />
         )}
         {activeTab === 'activity' && <ActivityPage onOpenProfile={() => setShowProfile(true)} />}

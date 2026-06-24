@@ -5,6 +5,8 @@ interface PayPadPageProps {
   onAmountChange: (amount: string) => void;
   onOpenProfile: () => void;
   onInitiatePayment: (type: 'Pay' | 'Request') => void;
+  onNavigateToMoney?: () => void;
+  onNavigateToActivity?: () => void;
 }
 
 export default function PayPadPage({
@@ -12,6 +14,8 @@ export default function PayPadPage({
   onAmountChange,
   onOpenProfile,
   onInitiatePayment,
+  onNavigateToMoney,
+  onNavigateToActivity,
 }: PayPadPageProps) {
   const handleKeyPress = (key: string) => {
     let newAmount = amount;
@@ -112,15 +116,39 @@ export default function PayPadPage({
       <div className="flex gap-3 px-5 pb-4 flex-shrink-0">
         <button
           onClick={() => onInitiatePayment('Request')}
-          className="flex-1 h-12 bg-black/15 text-white text-sm font-semibold border-0 rounded-full cursor-pointer"
+          className="flex-1 h-12 bg-black/15 text-white text-sm font-bold border-0 rounded-full cursor-pointer"
         >
           Request
         </button>
         <button
           onClick={() => onInitiatePayment('Pay')}
-          className="flex-1 h-12 bg-black/15 text-white text-sm font-semibold border-0 rounded-full cursor-pointer"
+          className="flex-1 h-12 bg-black/15 text-white text-sm font-bold border-0 rounded-full cursor-pointer"
         >
           Pay
+        </button>
+      </div>
+
+      {/* Bottom Nav Icons - Only on PayPad page */}
+      <div className="flex justify-center gap-8 px-5 pb-4 flex-shrink-0">
+        <button
+          onClick={onNavigateToMoney}
+          className="flex items-center justify-center text-white hover:opacity-75 cursor-pointer bg-none border-0"
+          aria-label="Home"
+        >
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+            <polyline points="9 22 9 12 15 12 15 22" />
+          </svg>
+        </button>
+        <button
+          onClick={onNavigateToActivity}
+          className="flex items-center justify-center text-white hover:opacity-75 cursor-pointer bg-none border-0"
+          aria-label="Activity"
+        >
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <polyline points="23 6 13.5 15.5 8.5 10.5 1 17" />
+            <polyline points="17 6 23 6 23 12" />
+          </svg>
         </button>
       </div>
     </div>
