@@ -43,90 +43,54 @@ export default function MoneyPage({ onOpenProfile }: MoneyPageProps) {
       {/* Features Grid */}
       <div className="grid grid-cols-2 gap-3 px-4 pb-6">
         {/* Savings */}
-        <div className="bg-white rounded-[18px] p-4 flex flex-col cursor-pointer min-h-[140px]">
-          <div className="flex justify-between items-center mb-3 text-sm font-semibold text-[#111111]">
-            <span>Savings</span>
+        <div className="bg-white rounded-[18px] p-4 flex flex-col cursor-pointer">
+          <div className="flex justify-between items-start mb-2">
+            <span className="text-sm font-semibold text-[#111111]">Savings</span>
             <span className="text-xs text-[#C7C7CC]">❯</span>
           </div>
-          <div className="w-10 h-10 rounded-full bg-blue-50 flex items-center justify-center text-blue-500 mb-4 relative">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-            </svg>
-            <div className="absolute top-0.5 right-3 w-1.5 h-1.5 bg-[#00D632] rounded-full" />
-          </div>
-          <div className="text-xl font-bold text-[#111111] mb-0.5">$0.00</div>
-          <div className="text-xs text-[#8E8E93]">Up to 4.5% interest</div>
-        </div>
-
-        {/* Borrow */}
-        <div className="bg-white rounded-[18px] p-4 flex flex-col cursor-pointer min-h-[140px]">
-          <div className="flex justify-between items-center mb-3 text-sm font-semibold text-[#111111]">
-            <span>Borrow</span>
-            <span className="text-xs text-[#C7C7CC]">❯</span>
-          </div>
-          <div className="w-10 h-10 rounded-full bg-cyan-100 flex items-center justify-center text-cyan-500 mb-4">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-              <polyline points="22 4 12 14.01 9 11.01" />
+          <div className="w-12 h-12 rounded-full bg-[#C8E6C9] flex items-center justify-center text-[#2E7D32] mb-3">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="6" x2="12" y2="18" stroke="white" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </div>
-          <div className="text-xl font-bold text-[#111111] mb-0.5">$0.00</div>
-          <div className="text-xs text-[#8E8E93]">Available</div>
+          <div className="text-lg font-bold text-[#111111]">$0.00</div>
+          <div className="text-xs text-[#8E8E93]">Save for a goal</div>
         </div>
 
-        {/* Taxes */}
-        <div className="bg-white rounded-[18px] p-4 flex flex-col cursor-pointer min-h-[140px]">
-          <div className="flex justify-between items-center mb-3 text-sm font-semibold text-[#111111]">
-            <span>Taxes</span>
+        {/* Buy bitcoin */}
+        <div className="bg-white rounded-[18px] p-4 flex flex-col cursor-pointer">
+          <div className="flex justify-between items-start mb-2">
+            <span className="text-sm font-semibold text-[#111111]">Buy bitcoin</span>
             <span className="text-xs text-[#C7C7CC]">❯</span>
           </div>
-          <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-500 mb-4">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            </svg>
-          </div>
-          <div className="text-xl font-bold text-[#111111] mb-0.5">&nbsp;</div>
-          <div className="text-xs text-[#8E8E93] mt-auto">Pay $0 to file</div>
-        </div>
-
-        {/* Paychecks */}
-        <div className="bg-white rounded-[18px] p-4 flex flex-col cursor-pointer min-h-[140px]">
-          <div className="flex justify-between items-center mb-3 text-sm font-semibold text-[#111111]">
-            <span>Paychecks</span>
-            <span className="text-xs text-[#C7C7CC]">❯</span>
-          </div>
-          <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center text-[#00D632] mb-4">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <polyline points="19 12 12 19 5 12" />
-            </svg>
-          </div>
-          <div className="text-xl font-bold text-[#111111] mb-0.5">&nbsp;</div>
-          <div className="text-xs text-[#8E8E93] mt-auto">Get direct deposits early</div>
-        </div>
-
-        {/* Bitcoin */}
-        <div className="bg-white rounded-[18px] p-4 flex flex-col cursor-pointer min-h-[140px]">
-          <div className="flex justify-between items-center mb-3 text-sm font-semibold text-[#111111]">
-            <span>Bitcoin</span>
-            <span className="text-xs text-[#C7C7CC]">❯</span>
-          </div>
-          <div className="w-10 h-10 rounded-full bg-cyan-100 flex items-center justify-center text-cyan-500 mb-4 text-lg font-bold italic">
-            B
+          <div className="w-12 h-12 rounded-lg bg-[#E3F2FD] flex items-center justify-center mb-3">
+            <div className="text-2xl font-bold text-[#1976D2]">₿</div>
           </div>
         </div>
 
-        {/* Stocks */}
-        <div className="bg-white rounded-[18px] p-4 flex flex-col cursor-pointer min-h-[140px]">
-          <div className="flex justify-between items-center mb-3 text-sm font-semibold text-[#111111]">
-            <span>Stocks</span>
+        {/* Invest in stocks */}
+        <div className="bg-white rounded-[18px] p-4 flex flex-col cursor-pointer">
+          <div className="flex justify-between items-start mb-2">
+            <span className="text-sm font-semibold text-[#111111]">Invest in stocks</span>
             <span className="text-xs text-[#C7C7CC]">❯</span>
           </div>
-          <div className="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center text-purple-500 mb-4">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <div className="w-12 h-12 rounded-lg bg-[#F3E5F5] flex items-center justify-center mb-3">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#7B1FA2" strokeWidth="2">
               <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
               <polyline points="17 6 23 6 23 12" />
             </svg>
+          </div>
+        </div>
+
+        {/* Free tax filing */}
+        <div className="bg-white rounded-[18px] p-4 flex flex-col cursor-pointer">
+          <div className="flex justify-between items-start mb-2">
+            <span className="text-sm font-semibold text-[#111111]">Free tax filing</span>
+            <span className="text-xs text-[#C7C7CC]">❯</span>
+          </div>
+          <div className="w-12 h-12 rounded-lg bg-[#FFF9C4] flex items-center justify-center mb-3">
+            <div className="text-2xl">📋</div>
           </div>
         </div>
       </div>
