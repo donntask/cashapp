@@ -71,7 +71,7 @@ export default function ActivityPage({ onOpenProfile }: ActivityPageProps) {
           <div className="w-10 h-10 rounded-full bg-[#00D632] flex items-center justify-center text-white text-lg">
             +
           </div>
-          <div className="text-[#00D632] text-center">Get $20</div>
+          <div className="text-[#111111] font-semibold text-center">Get $20</div>
         </div>
         <div className="flex flex-col items-center gap-1.5 font-semibold text-xs min-w-[55px]">
           <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold">

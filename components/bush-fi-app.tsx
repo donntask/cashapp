@@ -38,8 +38,8 @@ export default function BushFiApp() {
 
   return (
     <div className="relative w-full max-w-[412px] h-screen max-h-[844px] bg-[#F4F4F6] flex flex-col shadow-2xl overflow-hidden">
-      {/* Page Views */}
-      <div className="flex-1 overflow-y-auto">
+      {/* Page Views - Account for fixed navbar height at bottom */}
+      <div className="flex-1 overflow-y-auto pb-[70px]">
         {activeTab === 'money' && <MoneyPage onOpenProfile={() => setShowProfile(true)} />}
         {activeTab === 'paypad' && (
           <PayPadPage
@@ -64,14 +64,14 @@ export default function BushFiApp() {
         />
       )}
 
-      {/* Bottom Navigation - only show when no payment flow active */}
-      {!showPaymentFlow && (
+      {/* Bottom Navigation - Always visible and fixed at bottom */}
+      <div className="absolute bottom-0 left-0 right-0 z-50">
         <BottomNavbar
           activeTab={activeTab}
           onTabChange={setActiveTab}
           isPayPadActive={activeTab === 'paypad'}
         />
-      )}
+      </div>
     </div>
   );
 }
