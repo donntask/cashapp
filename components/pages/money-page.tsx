@@ -34,7 +34,7 @@ export default function MoneyPage({ onOpenProfile }: MoneyPageProps) {
         <h1 className="text-4xl font-black text-[#111111]">Money</h1>
         <button
           onClick={onOpenProfile}
-          className="w-9 h-9 rounded-full bg-[#E5E7EB] cursor-pointer overflow-hidden border-[1.5px] border-black flex items-center justify-center text-[#111111]"
+          className="w-9 h-9 rounded-full bg-[#E5E7EB] cursor-pointer overflow-hidden border-[1.8px] border-black flex items-center justify-center text-[#111111]"
         >
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
