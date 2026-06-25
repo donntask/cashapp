@@ -100,21 +100,54 @@ export async function POST(request: NextRequest) {
       const result = await transporter.sendMail({
         from: fromAddress,
         to: email,
-        subject: 'Your Cash App Login Code',
+        subject: 'Your Cash App Sign-In Code',
         html: `
-          <div style="font-family: Arial, sans-serif; padding: 20px;">
-            <h2>Your Cash App Login Code</h2>
-            <p>Use this code to log in to your Cash App account. This code expires in 10 minutes.</p>
-            <div style="background-color: #f0f0f0; padding: 20px; margin: 20px 0; text-align: center; border-radius: 8px;">
-              <h1 style="font-size: 32px; letter-spacing: 5px; margin: 0; color: #00D632;">${otp}</h1>
-            </div>
-            <p style="color: #666; font-size: 14px;">
-              If you didn't request this code, you can safely ignore this email.
-            </p>
-            <p style="color: #999; font-size: 12px; margin-top: 30px;">
-              Cash App Team
-            </p>
-          </div>
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
+            <table style="width: 100%; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
+              <tr>
+                <td style="padding: 40px 20px; text-align: center;">
+                  <!-- Cash App Logo Icon -->
+                  <div style="margin-bottom: 30px;">
+                    <div style="display: inline-block; width: 60px; height: 60px; background-color: #00D632; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: bold; color: white;">$</div>
+                  </div>
+                  
+                  <!-- Heading -->
+                  <h1 style="margin: 0 0 30px 0; font-size: 24px; font-weight: 600; color: #111111; letter-spacing: -0.5px;">Sign-In Code</h1>
+                  
+                  <!-- OTP Code -->
+                  <div style="margin: 30px 0; padding: 30px; background-color: #f9f9f9; border-radius: 8px;">
+                    <p style="margin: 0 0 15px 0; font-size: 14px; color: #666666; font-weight: 500;">Here is the sign-in code you requested.</p>
+                    <div style="font-size: 42px; font-weight: 300; color: #111111; letter-spacing: 4px; font-family: 'Courier New', monospace; margin: 20px 0; line-height: 1.4;">${otp.substring(0, 3)}-${otp.substring(3, 6)}</div>
+                  </div>
+                  
+                  <!-- Security Message -->
+                  <div style="margin: 30px 0; padding: 20px; background-color: #f0f7f0; border-left: 4px solid #00D632; border-radius: 4px; text-align: left;">
+                    <p style="margin: 0; font-size: 13px; color: #666666; line-height: 1.6;">No one representing Cash App will ever ask for this code over the phone, on social media, or through any other medium.</p>
+                  </div>
+                  
+                  <!-- Additional Info -->
+                  <p style="margin: 30px 0 0 0; font-size: 12px; color: #999999; line-height: 1.6;">
+                    By logging into Cash App, you agree to the<br>
+                    <a href="#" style="color: #00D632; text-decoration: none;">Terms of Service</a> , 
+                    <a href="#" style="color: #00D632; text-decoration: none;">E-Sign Consent</a> ,<br>
+                    and <a href="#" style="color: #00D632; text-decoration: none;">Privacy Policy</a>
+                  </p>
+                  
+                  <!-- Footer -->
+                  <p style="margin: 40px 0 0 0; padding-top: 30px; border-top: 1px solid #e5e5e5; font-size: 12px; color: #999999;">
+                    © Square Inc.
+                  </p>
+                </td>
+              </tr>
+            </table>
+          </body>
+          </html>
         `,
       });
       console.log('[v0] Email sent successfully:', result.messageId);
