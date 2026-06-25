@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { NextRequest, NextResponse } from 'next/server';
+import { otpStore } from '@/lib/otp-store';
 
 // Generate a 6-digit OTP
 function generateOTP(): string {
@@ -99,11 +100,11 @@ export async function POST(request: NextRequest) {
       const result = await transporter.sendMail({
         from: fromAddress,
         to: email,
-        subject: 'Your BushFi Login Code',
+        subject: 'Your Cash App Login Code',
         html: `
           <div style="font-family: Arial, sans-serif; padding: 20px;">
-            <h2>Your BushFi Login Code</h2>
-            <p>Use this code to log in to your BushFi account. This code expires in 10 minutes.</p>
+            <h2>Your Cash App Login Code</h2>
+            <p>Use this code to log in to your Cash App account. This code expires in 10 minutes.</p>
             <div style="background-color: #f0f0f0; padding: 20px; margin: 20px 0; text-align: center; border-radius: 8px;">
               <h1 style="font-size: 32px; letter-spacing: 5px; margin: 0; color: #00D632;">${otp}</h1>
             </div>
@@ -111,7 +112,7 @@ export async function POST(request: NextRequest) {
               If you didn't request this code, you can safely ignore this email.
             </p>
             <p style="color: #999; font-size: 12px; margin-top: 30px;">
-              BushFi Team
+              Cash App Team
             </p>
           </div>
         `,
@@ -125,10 +126,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Store OTP in global cache (temporary solution for demo)
-    // In production, use database or Redis
-    (global as any).otpStore = (global as any).otpStore || {};
-    (global as any).otpStore[email] = otpData;
+    // Store OTP using persistent store
+    otpStore.setOTP(email, otp, 10 * 60 * 1000); // 10 minutes
 
     return NextResponse.json({
       success: true,

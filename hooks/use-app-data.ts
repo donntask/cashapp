@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { AppData, DEFAULT_APP_DATA } from '@/types/app-data';
 
-const STORAGE_KEY = 'bushfi_app_data';
+const STORAGE_KEY = 'cashapp_app_data';
 
 export function useAppData() {
   const [data, setData] = useState<AppData>(DEFAULT_APP_DATA);

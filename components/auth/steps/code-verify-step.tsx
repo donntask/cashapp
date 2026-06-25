@@ -37,7 +37,7 @@ export default function CodeVerifyStep({
       // Get registered users from localStorage
       let registeredUsers = [];
       try {
-        const stored = localStorage.getItem('bushfi_registered_users');
+        const stored = localStorage.getItem('cashapp_registered_users');
         registeredUsers = stored ? JSON.parse(stored) : [];
       } catch (e) {
         console.error('[v0] Error reading registered users:', e);
@@ -73,7 +73,7 @@ export default function CodeVerifyStep({
       if (data.isNewUser) {
         registeredUsers.push(verificationEmail);
         try {
-          localStorage.setItem('bushfi_registered_users', JSON.stringify(registeredUsers));
+          localStorage.setItem('cashapp_registered_users', JSON.stringify(registeredUsers));
         } catch (e) {
           console.error('[v0] Error storing registered users:', e);
         }

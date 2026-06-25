@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { otpStore } from '@/lib/otp-store';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,28 +12,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Retrieve OTP from global store
-    const otpStore = (global as any).otpStore || {};
-    const storedOtpData = otpStore[email];
+    console.log('[v0] OTP verification attempt:', {
+      email,
+      otpProvided: otp,
+    });
 
-    if (!storedOtpData) {
-      return NextResponse.json(
-        { error: 'No OTP found for this email. Please request a new code.' },
-        { status: 400 }
-      );
-    }
+    // Verify OTP using the store
+    const isValidOTP = otpStore.verifyOTP(email, otp);
 
-    // Check if OTP has expired
-    if (Date.now() > storedOtpData.expiresAt) {
-      delete otpStore[email];
-      return NextResponse.json(
-        { error: 'OTP has expired. Please request a new code.' },
-        { status: 400 }
-      );
-    }
-
-    // Verify OTP
-    if (storedOtpData.otp !== otp) {
+    if (!isValidOTP) {
+      const storedOTPData = otpStore.getOTP(email);
+      if (!storedOTPData) {
+        return NextResponse.json(
+          { error: 'No OTP found for this email. Please request a new code.' },
+          { status: 400 }
+        );
+      }
+      
       return NextResponse.json(
         { error: 'Invalid OTP. Please try again.' },
         { status: 400 }
@@ -49,9 +45,6 @@ export async function POST(request: NextRequest) {
     if (!isNewUser && !(global as any).registeredUsers.includes(email)) {
       (global as any).registeredUsers.push(email);
     }
-
-    // Clean up used OTP
-    delete otpStore[email];
 
     console.log('[v0] OTP verified - Email:', email, 'IsNewUser:', isNewUser);
 
