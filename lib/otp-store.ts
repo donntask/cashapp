@@ -19,7 +19,6 @@ class OTPStore {
       expiresAt: Date.now() + expiresIn,
     };
     this.store.set(email, otpData);
-    console.log('[v0] OTP stored for:', email);
   }
 
   getOTP(email: string): OTPData | null {

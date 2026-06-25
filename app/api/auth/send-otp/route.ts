@@ -56,31 +56,12 @@ export async function POST(request: NextRequest) {
 
     // Generate OTP
     const otp = generateOTP();
-    
-    console.log('[v0] Generating OTP for email:', email, 'OTP:', otp);
-
-    // Store OTP in memory (in production, use a database or Redis)
-    const otpData = {
-      email,
-      otp,
-      timestamp: Date.now(),
-      expiresAt: Date.now() + 10 * 60 * 1000, // 10 minutes
-    };
 
     // Create email transporter
     const transporter = createTransporter();
 
-    console.log('[v0] SMTP config:', {
-      host: process.env.SMTP_HOST,
-      port: process.env.SMTP_PORT,
-      secure: process.env.SMTP_PORT === '465',
-      from: process.env.SMTP_FROM,
-    });
-
     try {
-      console.log('[v0] Verifying SMTP connection...');
       await transporter.verify();
-      console.log('[v0] SMTP connection verified');
     } catch (verifyError) {
       console.error('[v0] SMTP verification failed:', verifyError);
       return NextResponse.json(
@@ -89,14 +70,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Use the SMTP user email if SMTP_FROM is not a valid email address
+    const fromAddress = process.env.SMTP_FROM?.includes('@') 
+      ? process.env.SMTP_FROM 
+      : `${process.env.SMTP_FROM || 'noreply'} <${process.env.SMTP_USER}>`;
+
     // Send OTP email
     try {
-      console.log('[v0] Sending OTP email to:', email);
-      // Use the SMTP user email if SMTP_FROM is not a valid email address
-      const fromAddress = process.env.SMTP_FROM?.includes('@') 
-        ? process.env.SMTP_FROM 
-        : `${process.env.SMTP_FROM || 'noreply'} <${process.env.SMTP_USER}>`;
-      
       const result = await transporter.sendMail({
         from: fromAddress,
         to: email,
@@ -148,7 +128,6 @@ export async function POST(request: NextRequest) {
           </html>
         `,
       });
-      console.log('[v0] Email sent successfully:', result.messageId);
     } catch (sendError) {
       console.error('[v0] Email sending failed:', sendError);
       return NextResponse.json(

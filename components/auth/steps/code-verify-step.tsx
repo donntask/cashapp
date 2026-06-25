@@ -32,7 +32,7 @@ export default function CodeVerifyStep({
       setError('');
 
       // Remove the dash from code for API
-      const otpCode = code.replace('-', '');
+      const otpCode = code.replace(/-/g, ''); // Use global flag to remove all dashes
 
       // Get registered users from localStorage
       let registeredUsers = [];

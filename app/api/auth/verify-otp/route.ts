@@ -12,16 +12,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log('[v0] OTP verification attempt:', {
-      email,
-      otpProvided: otp,
-    });
-
     // Verify OTP using the store
-    const isValidOTP = otpStore.verifyOTP(email, otp);
+    const storedOTPData = otpStore.getOTP(email);
+    const isValidOTP = storedOTPData && storedOTPData.otp === otp;
 
     if (!isValidOTP) {
-      const storedOTPData = otpStore.getOTP(email);
       if (!storedOTPData) {
         return NextResponse.json(
           { error: 'No OTP found for this email. Please request a new code.' },
@@ -45,8 +40,6 @@ export async function POST(request: NextRequest) {
     if (!isNewUser && !(global as any).registeredUsers.includes(email)) {
       (global as any).registeredUsers.push(email);
     }
-
-    console.log('[v0] OTP verified - Email:', email, 'IsNewUser:', isNewUser);
 
     return NextResponse.json({
       success: true,
