@@ -63,7 +63,8 @@ export default function AuthStartStep({
 
         if (!response.ok) {
           const data = await response.json();
-          setError(data.error || 'Failed to send OTP');
+          console.error('[v0] OTP send failed:', data);
+          setError(data.error || 'Failed to send OTP. Please try again.');
           setIsLoading(false);
           return;
         }

@@ -21,6 +21,20 @@ function createTransporter() {
 
 export async function POST(request: NextRequest) {
   try {
+    // Validate environment variables first
+    if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS || !process.env.SMTP_FROM) {
+      console.error('[v0] SMTP configuration missing:', {
+        host: !!process.env.SMTP_HOST,
+        user: !!process.env.SMTP_USER,
+        pass: !!process.env.SMTP_PASS,
+        from: !!process.env.SMTP_FROM,
+      });
+      return NextResponse.json(
+        { error: 'Email service not configured. Please contact support.' },
+        { status: 500 }
+      );
+    }
+
     const { email } = await request.json();
 
     if (!email) {
@@ -42,8 +56,9 @@ export async function POST(request: NextRequest) {
     // Generate OTP
     const otp = generateOTP();
     
+    console.log('[v0] Generating OTP for email:', email, 'OTP:', otp);
+
     // Store OTP in memory (in production, use a database or Redis)
-    // For now, we'll store it in the response and expect the client to send it back
     const otpData = {
       email,
       otp,
@@ -54,27 +69,56 @@ export async function POST(request: NextRequest) {
     // Create email transporter
     const transporter = createTransporter();
 
-    // Send OTP email
-    await transporter.sendMail({
+    console.log('[v0] SMTP config:', {
+      host: process.env.SMTP_HOST,
+      port: process.env.SMTP_PORT,
+      secure: process.env.SMTP_PORT === '465',
       from: process.env.SMTP_FROM,
-      to: email,
-      subject: 'Your BushFi Login Code',
-      html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px;">
-          <h2>Your BushFi Login Code</h2>
-          <p>Use this code to log in to your BushFi account. This code expires in 10 minutes.</p>
-          <div style="background-color: #f0f0f0; padding: 20px; margin: 20px 0; text-align: center; border-radius: 8px;">
-            <h1 style="font-size: 32px; letter-spacing: 5px; margin: 0; color: #00D632;">${otp}</h1>
-          </div>
-          <p style="color: #666; font-size: 14px;">
-            If you didn't request this code, you can safely ignore this email.
-          </p>
-          <p style="color: #999; font-size: 12px; margin-top: 30px;">
-            BushFi Team
-          </p>
-        </div>
-      `,
     });
+
+    try {
+      console.log('[v0] Verifying SMTP connection...');
+      await transporter.verify();
+      console.log('[v0] SMTP connection verified');
+    } catch (verifyError) {
+      console.error('[v0] SMTP verification failed:', verifyError);
+      return NextResponse.json(
+        { error: 'Email service connection failed. Please check SMTP configuration.' },
+        { status: 500 }
+      );
+    }
+
+    // Send OTP email
+    try {
+      console.log('[v0] Sending OTP email to:', email);
+      const result = await transporter.sendMail({
+        from: process.env.SMTP_FROM,
+        to: email,
+        subject: 'Your BushFi Login Code',
+        html: `
+          <div style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2>Your BushFi Login Code</h2>
+            <p>Use this code to log in to your BushFi account. This code expires in 10 minutes.</p>
+            <div style="background-color: #f0f0f0; padding: 20px; margin: 20px 0; text-align: center; border-radius: 8px;">
+              <h1 style="font-size: 32px; letter-spacing: 5px; margin: 0; color: #00D632;">${otp}</h1>
+            </div>
+            <p style="color: #666; font-size: 14px;">
+              If you didn't request this code, you can safely ignore this email.
+            </p>
+            <p style="color: #999; font-size: 12px; margin-top: 30px;">
+              BushFi Team
+            </p>
+          </div>
+        `,
+      });
+      console.log('[v0] Email sent successfully:', result.messageId);
+    } catch (sendError) {
+      console.error('[v0] Email sending failed:', sendError);
+      return NextResponse.json(
+        { error: `Failed to send OTP: ${sendError instanceof Error ? sendError.message : 'Unknown error'}` },
+        { status: 500 }
+      );
+    }
 
     // Store OTP in global cache (temporary solution for demo)
     // In production, use database or Redis
@@ -87,9 +131,9 @@ export async function POST(request: NextRequest) {
       expiresIn: 600, // 10 minutes in seconds
     });
   } catch (error) {
-    console.error('[v0] OTP sending error:', error);
+    console.error('[v0] OTP endpoint error:', error);
     return NextResponse.json(
-      { error: 'Failed to send OTP. Please try again.' },
+      { error: `Server error: ${error instanceof Error ? error.message : 'Unknown error'}` },
       { status: 500 }
     );
   }
