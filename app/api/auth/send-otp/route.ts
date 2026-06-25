@@ -107,45 +107,43 @@ export async function POST(request: NextRequest) {
           <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <style>
+              body { margin: 0; padding: 0; background-color: #f5f5f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; }
+              table { border-collapse: collapse; }
+              img { display: block; max-width: 100%; }
+            </style>
           </head>
-          <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f5;">
-            <table style="width: 100%; max-width: 600px; margin: 0 auto; background-color: #ffffff;">
-              <tr>
-                <td style="padding: 40px 20px; text-align: center;">
-                  <!-- Cash App Logo Icon -->
-                  <div style="margin-bottom: 30px;">
-                    <div style="display: inline-block; width: 60px; height: 60px; background-color: #00D632; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: bold; color: white;">$</div>
-                  </div>
-                  
-                  <!-- Heading -->
-                  <h1 style="margin: 0 0 30px 0; font-size: 24px; font-weight: 600; color: #111111; letter-spacing: -0.5px;">Sign-In Code</h1>
-                  
-                  <!-- OTP Code -->
-                  <div style="margin: 30px 0; padding: 30px; background-color: #f9f9f9; border-radius: 8px;">
-                    <p style="margin: 0 0 15px 0; font-size: 14px; color: #666666; font-weight: 500;">Here is the sign-in code you requested.</p>
-                    <div style="font-size: 42px; font-weight: 300; color: #111111; letter-spacing: 4px; font-family: 'Courier New', monospace; margin: 20px 0; line-height: 1.4;">${otp.substring(0, 3)}-${otp.substring(3, 6)}</div>
-                  </div>
-                  
-                  <!-- Security Message -->
-                  <div style="margin: 30px 0; padding: 20px; background-color: #f0f7f0; border-left: 4px solid #00D632; border-radius: 4px; text-align: left;">
-                    <p style="margin: 0; font-size: 13px; color: #666666; line-height: 1.6;">No one representing Cash App will ever ask for this code over the phone, on social media, or through any other medium.</p>
-                  </div>
-                  
-                  <!-- Additional Info -->
-                  <p style="margin: 30px 0 0 0; font-size: 12px; color: #999999; line-height: 1.6;">
-                    By logging into Cash App, you agree to the<br>
-                    <a href="#" style="color: #00D632; text-decoration: none;">Terms of Service</a> , 
-                    <a href="#" style="color: #00D632; text-decoration: none;">E-Sign Consent</a> ,<br>
-                    and <a href="#" style="color: #00D632; text-decoration: none;">Privacy Policy</a>
-                  </p>
-                  
-                  <!-- Footer -->
-                  <p style="margin: 40px 0 0 0; padding-top: 30px; border-top: 1px solid #e5e5e5; font-size: 12px; color: #999999;">
-                    © Square Inc.
-                  </p>
-                </td>
-              </tr>
-            </table>
+          <body>
+            <div style="width: 100%; background-color: #f5f5f5; padding: 20px 0;">
+              <table style="width: 100%; max-width: 480px; margin: 0 auto; background-color: #ffffff;">
+                <tr>
+                  <td style="padding: 40px 30px; text-align: center;">
+                    <!-- Cash App Logo -->
+                    <div style="margin-bottom: 20px;">
+                      <img src="https://hebbkx1anhila5yf.public.blob.vercel-storage.com/cash-Yvqz2Dw6PpXu9irpiFkZtdKEMFPJBc.png" alt="Cash App" style="width: 48px; height: 48px; margin: 0 auto; border-radius: 8px;">
+                    </div>
+                    
+                    <!-- Heading -->
+                    <h1 style="margin: 0 0 20px 0; font-size: 20px; font-weight: 500; color: #333333;">Sign-In Code</h1>
+                    
+                    <!-- OTP Code -->
+                    <div style="margin: 28px 0; font-size: 48px; font-weight: 300; color: #000000; letter-spacing: 2px; font-family: 'Courier New', 'Courier', monospace; line-height: 1.2;">${otp.substring(0, 3)}-${otp.substring(3, 6)}</div>
+                    
+                    <!-- Description -->
+                    <p style="margin: 20px 0 0 0; font-size: 13px; color: #888888; line-height: 1.5;">Here is the sign-in code you requested.</p>
+                    
+                    <!-- Security Message -->
+                    <p style="margin: 18px 0 28px 0; font-size: 13px; color: #888888; line-height: 1.6;">No one representing Cash App will ever ask for this code over the phone, on social media, or through any other medium.</p>
+                    
+                    <!-- Legal Footer -->
+                    <div style="padding-top: 20px; border-top: 1px solid #e8e8e8; margin-top: 20px;">
+                      <p style="margin: 0 0 8px 0; font-size: 12px; color: #666666; line-height: 1.5;">By logging into Cash App, you agree to the<br><a href="#" style="color: #0066cc; text-decoration: none; font-weight: 500;">Terms of Service</a>&nbsp;&nbsp;,&nbsp;&nbsp;<a href="#" style="color: #0066cc; text-decoration: none; font-weight: 500;">E-Sign Consent</a>&nbsp;&nbsp;,<br>and&nbsp;&nbsp;<a href="#" style="color: #0066cc; text-decoration: none; font-weight: 500;">Privacy Policy</a></p>
+                      <p style="margin: 10px 0 0 0; font-size: 11px; color: #999999;">© Square Inc.</p>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </div>
           </body>
           </html>
         `,
