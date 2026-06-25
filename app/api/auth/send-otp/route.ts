@@ -91,8 +91,13 @@ export async function POST(request: NextRequest) {
     // Send OTP email
     try {
       console.log('[v0] Sending OTP email to:', email);
+      // Use the SMTP user email if SMTP_FROM is not a valid email address
+      const fromAddress = process.env.SMTP_FROM?.includes('@') 
+        ? process.env.SMTP_FROM 
+        : `${process.env.SMTP_FROM || 'noreply'} <${process.env.SMTP_USER}>`;
+      
       const result = await transporter.sendMail({
-        from: process.env.SMTP_FROM,
+        from: fromAddress,
         to: email,
         subject: 'Your BushFi Login Code',
         html: `
