@@ -12,7 +12,7 @@ export default function CodeVerifyStep({
   verificationEmail,
   onNext,
 }: CodeVerifyStepProps) {
-  const { setIsOtpVerified, setIsNewUser, updateAuthData } = useAuth();
+  const { setIsOtpVerified, updateAuthData } = useAuth();
   const [code, setCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -64,20 +64,12 @@ export default function CodeVerifyStep({
 
       const data = await response.json();
 
-      // Store the OTP verification state and user type
+      // Store the OTP verification state
       setIsOtpVerified(true);
-      setIsNewUser(data.isNewUser);
       updateAuthData({ email: verificationEmail });
 
-      // Register the user if new and store in localStorage
-      if (data.isNewUser) {
-        registeredUsers.push(verificationEmail);
-        try {
-          localStorage.setItem('cashapp_registered_users', JSON.stringify(registeredUsers));
-        } catch (e) {
-          console.error('[v0] Error storing registered users:', e);
-        }
-      }
+      // Note: isNewUser was already set in auth-flow when email was checked,
+      // so we don't override it here
 
       setIsLoading(false);
       onNext();
