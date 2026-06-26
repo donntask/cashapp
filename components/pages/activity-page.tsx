@@ -1,6 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/auth-context';
+import { getUserTransactions } from '@/lib/firestore-service';
+import { Timestamp } from 'firebase/firestore';
 
 interface ActivityPageProps {
   onOpenProfile: () => void;
@@ -12,28 +15,40 @@ interface Transaction {
   amount: number;
   recipient: string;
   note: string;
-  timestamp: number;
+  timestamp: Timestamp | number;
   status: string;
 }
 
 export default function ActivityPage({ onOpenProfile }: ActivityPageProps) {
+  const { userId } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const appData = localStorage.getItem('cashapp_app_data');
-      if (appData) {
-        const data = JSON.parse(appData);
-        setTransactions(data.transactions || []);
+    const loadTransactions = async () => {
+      try {
+        if (userId) {
+          const txs = await getUserTransactions(userId);
+          setTransactions(txs as Transaction[]);
+        }
+      } catch (error) {
+        console.error('[v0] Failed to load transactions:', error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('[v0] Failed to load transactions:', error);
-    }
-  }, []);
+    };
 
-  const formatDate = (timestamp: number) => {
-    const date = new Date(timestamp);
+    loadTransactions();
+  }, [userId]);
+
+  const formatDate = (timestamp: Timestamp | number) => {
+    let date: Date;
+    if (timestamp instanceof Timestamp) {
+      date = timestamp.toDate();
+    } else {
+      date = new Date(timestamp);
+    }
     const today = new Date();
     const isToday = date.toDateString() === today.toDateString();
     if (isToday) {

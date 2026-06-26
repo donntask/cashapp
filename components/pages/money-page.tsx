@@ -1,27 +1,38 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/auth-context';
+import { getUserAccount } from '@/lib/firestore-service';
 
 interface MoneyPageProps {
   onOpenProfile: () => void;
 }
 
 export default function MoneyPage({ onOpenProfile }: MoneyPageProps) {
+  const { userId } = useAuth();
   const [cashBalance, setCashBalance] = useState(0);
   const [savingsBalance, setSavingsBalance] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    try {
-      const appData = localStorage.getItem('cashapp_app_data');
-      if (appData) {
-        const data = JSON.parse(appData);
-        setCashBalance(data.cashBalance || 0);
-        setSavingsBalance(data.savingsBalance || 0);
+    const loadBalances = async () => {
+      try {
+        if (userId) {
+          const account = await getUserAccount(userId);
+          if (account) {
+            setCashBalance(account.cashBalance || 0);
+            setSavingsBalance(account.savingsBalance || 0);
+          }
+        }
+      } catch (error) {
+        console.error('[v0] Failed to load account data:', error);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('[v0] Failed to load app data:', error);
-    }
-  }, []);
+    };
+
+    loadBalances();
+  }, [userId]);
 
   const formatCurrency = (amount: number) => {
     return `$${amount.toFixed(2)}`;

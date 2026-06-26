@@ -18,12 +18,15 @@ export interface AuthContextType {
   resetAuth: () => void;
   isAuthenticated: boolean;
   completeAuth: () => void;
+  completeAuthWithFirestore: (uid: string) => Promise<void>;
   isOtpVerified: boolean;
   setIsOtpVerified: (verified: boolean) => void;
   isNewUser: boolean;
   setIsNewUser: (isNew: boolean) => void;
   verifiedEmail: string;
   setVerifiedEmail: (email: string) => void;
+  userId: string;
+  setUserId: (id: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -46,6 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isOtpVerified, setIsOtpVerified] = useState(false);
   const [isNewUser, setIsNewUser] = useState(true);
   const [verifiedEmail, setVerifiedEmail] = useState('');
+  const [userId, setUserId] = useState('');
 
   // Load auth data from localStorage on mount
   useEffect(() => {
@@ -115,18 +119,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const completeAuthWithFirestore = async (uid: string) => {
+    try {
+      // Create user profile in Firestore
+      const response = await fetch('/api/auth/setup-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          uid,
+          email: authData.email,
+          firstName: authData.firstName,
+          lastName: authData.lastName,
+          cashtag: authData.cashtag,
+          zipCode: authData.zipCode,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to setup user in Firestore');
+      }
+
+      setUserId(uid);
+      completeAuth();
+    } catch (error) {
+      console.error('[v0] Failed to complete auth with Firestore:', error);
+      throw error;
+    }
+  };
+
   const value: AuthContextType = {
     authData,
     updateAuthData,
     resetAuth,
     isAuthenticated,
     completeAuth,
+    completeAuthWithFirestore,
     isOtpVerified,
     setIsOtpVerified,
     isNewUser,
     setIsNewUser,
     verifiedEmail,
     setVerifiedEmail,
+    userId,
+    setUserId,
   };
 
   return (
