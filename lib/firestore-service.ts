@@ -309,6 +309,22 @@ export async function searchUserByCashtag(cashtag: string): Promise<any> {
 }
 
 /**
+ * Update user admin status
+ */
+export async function updateUserAdminStatus(uid: string, isAdmin: boolean): Promise<void> {
+  try {
+    const userRef = doc(db, 'users', uid);
+    await updateDoc(userRef, {
+      isAdmin,
+      updatedAt: Timestamp.now(),
+    });
+  } catch (error) {
+    console.error('[v0] Error updating admin status:', error);
+    throw error;
+  }
+}
+
+/**
  * Fund a user's account (Admin only)
  */
 export async function fundUserAccount(uid: string, amount: number): Promise<void> {

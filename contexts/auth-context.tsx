@@ -27,6 +27,9 @@ export interface AuthContextType {
   setVerifiedEmail: (email: string) => void;
   userId: string;
   setUserId: (id: string) => void;
+  isAdmin: boolean;
+  setIsAdmin: (admin: boolean) => void;
+  sessionPersisted: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -50,14 +53,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isNewUser, setIsNewUser] = useState(true);
   const [verifiedEmail, setVerifiedEmail] = useState('');
   const [userId, setUserId] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [sessionPersisted, setSessionPersisted] = useState(false);
 
-  // Load auth data from localStorage on mount
+  // Load auth data from localStorage on mount and restore session
   useEffect(() => {
     try {
       const stored = localStorage.getItem('cashapp_auth_data');
+      const adminStatus = localStorage.getItem('cashapp_admin');
+      const userIdStored = localStorage.getItem('cashapp_user_id');
+      
       if (stored) {
         const parsed = JSON.parse(stored);
         setAuthData(parsed);
+        setIsAuthenticated(true);
+        setSessionPersisted(true);
+      }
+      
+      if (adminStatus === 'true') {
+        setIsAdmin(true);
+      }
+      
+      if (userIdStored) {
+        setUserId(userIdStored);
       }
     } catch (error) {
       console.error('[v0] Failed to load auth data:', error);
@@ -100,7 +118,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const completeAuth = () => {
     setIsAuthenticated(true);
-    // Also save user data to app data storage
+    setSessionPersisted(true);
+    // Persist user data to app data storage
     try {
       const appData = localStorage.getItem('cashapp_app_data');
       let data = appData ? JSON.parse(appData) : { user: null, cashBalance: 0, savingsBalance: 0, bankAccount: null, transactions: [], lastUpdated: Date.now() };
@@ -114,12 +133,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
       data.lastUpdated = Date.now();
       localStorage.setItem('cashapp_app_data', JSON.stringify(data));
+      localStorage.setItem('cashapp_auth_data', JSON.stringify(authData));
     } catch (error) {
       console.error('[v0] Failed to save app data:', error);
     }
   };
 
-  const completeAuthWithFirestore = async (uid: string) => {
+  const completeAuthWithFirestore = async (uid: string, isAdminUser: boolean = false) => {
     try {
       // Create user profile in Firestore
       const response = await fetch('/api/auth/setup-user', {
@@ -132,6 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           lastName: authData.lastName,
           cashtag: authData.cashtag,
           zipCode: authData.zipCode,
+          isAdmin: isAdminUser,
         }),
       });
 
@@ -140,6 +161,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       setUserId(uid);
+      setIsAdmin(isAdminUser);
+      
+      // Persist admin status and user ID
+      localStorage.setItem('cashapp_user_id', uid);
+      if (isAdminUser) {
+        localStorage.setItem('cashapp_admin', 'true');
+      }
+      
       completeAuth();
     } catch (error) {
       console.error('[v0] Failed to complete auth with Firestore:', error);
@@ -162,6 +191,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setVerifiedEmail,
     userId,
     setUserId,
+    isAdmin,
+    setIsAdmin,
+    sessionPersisted,
   };
 
   return (

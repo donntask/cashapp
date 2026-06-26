@@ -14,9 +14,10 @@ interface UserData {
 interface ProfileOverlayProps {
   onClose: () => void;
   onSelectSetting?: (setting: string) => void;
+  onOpenSettings?: () => void;
 }
 
-export default function ProfileOverlay({ onClose, onSelectSetting }: ProfileOverlayProps) {
+export default function ProfileOverlay({ onClose, onSelectSetting, onOpenSettings }: ProfileOverlayProps) {
   const [user, setUser] = useState<UserData | null>(null);
   const [loadingSettingName, setLoadingSettingName] = useState<string | null>(null);
 
@@ -169,6 +170,17 @@ export default function ProfileOverlay({ onClose, onSelectSetting }: ProfileOver
 
       {/* Settings Section */}
       <div className="text-xs font-bold uppercase text-[#8E8E93] px-6 py-3 mt-2">Account & Settings</div>
+
+      <button onClick={onOpenSettings} className="w-full bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer border-0">
+        <div className="flex items-center gap-4 text-base font-bold text-[#111111]">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M12 1v6m0 6v6M4.22 4.22l4.24 4.24m2.98 2.98l4.24 4.24M1 12h6m6 0h6m-16.78 7.78l4.24-4.24m2.98-2.98l4.24-4.24" />
+          </svg>
+          <span>Settings</span>
+        </div>
+        <span className="text-xs text-[#C7C7CC]">❯</span>
+      </button>
 
       <button onClick={() => handleSettingClick('Personal')} className="w-full bg-white px-6 py-4 flex justify-between items-center border-b border-black/3 cursor-pointer border-0">
         <div className="flex items-center gap-4 text-base font-bold text-[#111111]">

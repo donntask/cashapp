@@ -5,6 +5,7 @@ import MoneyPage from './pages/money-page';
 import PayPadPage from './pages/paypad-page';
 import ActivityPage from './pages/activity-page';
 import ProfileOverlay from './overlays/profile-overlay';
+import SettingsOverlay from './overlays/settings-overlay';
 import PaymentFlow from './overlays/payment-flow';
 import BottomNavbar from './bottom-navbar';
 import AuthFlow from './auth/auth-flow';
@@ -15,6 +16,7 @@ export default function CashApp() {
   const [authFlowComplete, setAuthFlowComplete] = useState(false);
   const [activeTab, setActiveTab] = useState<'money' | 'paypad' | 'activity'>('money');
   const [showProfile, setShowProfile] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [showPaymentFlow, setShowPaymentFlow] = useState(false);
   const [paymentFlowStep, setPaymentFlowStep] = useState<'recipient' | 'pin' | 'status'>('recipient');
   const [padAmount, setPadAmount] = useState('0');
@@ -77,8 +79,8 @@ export default function CashApp() {
     return <AuthFlow onAuthComplete={() => setAuthFlowComplete(true)} />;
   }
 
-  // Hide navbar when PayPad page is active, payment flow is open, or profile is open
-  const shouldHideNavbar = activeTab === 'paypad' || showPaymentFlow || showProfile;
+  // Hide navbar when PayPad page is active, payment flow is open, or profile/settings is open
+  const shouldHideNavbar = activeTab === 'paypad' || showPaymentFlow || showProfile || showSettings;
   
   return (
     <div className="relative w-full max-w-[412px] h-screen max-h-[844px] bg-[#F4F4F6] flex flex-col shadow-2xl overflow-hidden select-none" style={{ WebkitUserSelect: 'none', userSelect: 'none' }}>
@@ -99,10 +101,20 @@ export default function CashApp() {
       </div>
 
       {/* Overlays */}
-      {showProfile && <ProfileOverlay onClose={() => setShowProfile(false)} onSelectSetting={(setting: string) => {
-        setSelectedAccountSetting(setting);
-        setScreenHistory([...screenHistory, { type: 'profile' }, { type: 'accountSetting', data: setting }]);
-      }} />}
+      {showProfile && (
+        <ProfileOverlay 
+          onClose={() => setShowProfile(false)} 
+          onSelectSetting={(setting: string) => {
+            setSelectedAccountSetting(setting);
+            setScreenHistory([...screenHistory, { type: 'profile' }, { type: 'accountSetting', data: setting }]);
+          }}
+          onOpenSettings={() => {
+            setShowProfile(false);
+            setShowSettings(true);
+          }}
+        />
+      )}
+      {showSettings && <SettingsOverlay isOpen={showSettings} onClose={() => setShowSettings(false)} />}
       {showPaymentFlow && (
         <PaymentFlow
           step={paymentFlowStep}

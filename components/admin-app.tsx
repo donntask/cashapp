@@ -2,31 +2,39 @@
 
 import { useState, useEffect } from 'react';
 import MoneyPage from './pages/money-page';
-import AdminUsersPage from './pages/admin-users-page';
+import PayPadPage from './pages/paypad-page';
 import ActivityPage from './pages/activity-page';
 import ProfileOverlay from './overlays/profile-overlay';
+import SettingsOverlay from './overlays/settings-overlay';
 import PaymentFlow from './overlays/payment-flow';
 import BottomNavbar from './bottom-navbar';
 import AuthFlow from './auth/auth-flow';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function AdminApp() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAdmin, sessionPersisted } = useAuth();
   const [authFlowComplete, setAuthFlowComplete] = useState(false);
-  const [activeTab, setActiveTab] = useState<'money' | 'users' | 'activity'>('money');
+  const [activeTab, setActiveTab] = useState<'money' | 'paypad' | 'activity'>('money');
   const [showProfile, setShowProfile] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [showPaymentFlow, setShowPaymentFlow] = useState(false);
   const [paymentFlowStep, setPaymentFlowStep] = useState<'recipient' | 'pin' | 'status'>('recipient');
   const [padAmount, setPadAmount] = useState('0');
   const [globalTransactionType, setGlobalTransactionType] = useState<'Pay' | 'Request'>('Pay');
   const [screenHistory, setScreenHistory] = useState<Array<{ type: string; data?: any }>>([]);
   const [selectedAccountSetting, setSelectedAccountSetting] = useState<string | null>(null);
-  const [isAdmin, setIsAdmin] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchedUsers, setSearchedUsers] = useState<any[]>([]);
 
-  // Check for existing logged-in user on mount
+  // Check for existing logged-in user on mount and restore session
   useEffect(() => {
     try {
+      // If session was persisted in auth context, restore it
+      if (sessionPersisted || isAuthenticated) {
+        setAuthFlowComplete(true);
+        return;
+      }
+      
+      // Otherwise check localStorage
       const authData = localStorage.getItem('cashapp_auth_data');
       const appData = localStorage.getItem('cashapp_app_data');
       
@@ -38,15 +46,10 @@ export default function AdminApp() {
           return;
         }
       }
-      
-      // Otherwise check if user is authenticated via auth context
-      if (isAuthenticated) {
-        setAuthFlowComplete(true);
-      }
     } catch (error) {
       console.error('[v0] Error checking persistent auth:', error);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, sessionPersisted]);
 
   const handleGoBack = () => {
     if (screenHistory.length > 0) {
@@ -80,7 +83,7 @@ export default function AdminApp() {
   }
 
   // Hide navbar when PayPad page is active, payment flow is open, or profile is open
-  const shouldHideNavbar = activeTab === 'paypad' || showPaymentFlow || showProfile;
+  const shouldHideNavbar = activeTab === 'paypad' || showPaymentFlow || showProfile || showSettings;
   
   return (
     <div className="relative w-full h-screen bg-[#F4F4F6] flex flex-col shadow-2xl overflow-hidden select-none" style={{ WebkitUserSelect: 'none', userSelect: 'none' }}>
@@ -93,23 +96,36 @@ export default function AdminApp() {
       {/* Page Views - Account for fixed navbar height at bottom when navbar is visible */}
       <div className={`flex-1 overflow-y-auto ${!shouldHideNavbar ? 'pb-[70px]' : ''}`}>
         {activeTab === 'money' && <MoneyPage onOpenProfile={() => setShowProfile(true)} isAdmin={isAdmin} />}
-        {activeTab === 'users' && (
-          <AdminUsersPage
+        {activeTab === 'paypad' && (
+          <PayPadPage
+            amount={padAmount}
+            onAmountChange={setPadAmount}
             onOpenProfile={() => setShowProfile(true)}
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
+            onInitiatePayment={handleInitiatePayment}
             onNavigateToMoney={() => setActiveTab('money')}
             onNavigateToActivity={() => setActiveTab('activity')}
+            isAdmin={isAdmin}
+            onAddSearchedUser={(user) => setSearchedUsers([...searchedUsers, user])}
           />
         )}
         {activeTab === 'activity' && <ActivityPage onOpenProfile={() => setShowProfile(true)} isAdmin={isAdmin} />}
       </div>
 
       {/* Overlays */}
-      {showProfile && <ProfileOverlay onClose={() => setShowProfile(false)} onSelectSetting={(setting: string) => {
-        setSelectedAccountSetting(setting);
-        setScreenHistory([...screenHistory, { type: 'profile' }, { type: 'accountSetting', data: setting }]);
-      }} />}
+      {showProfile && (
+        <ProfileOverlay 
+          onClose={() => setShowProfile(false)} 
+          onSelectSetting={(setting: string) => {
+            setSelectedAccountSetting(setting);
+            setScreenHistory([...screenHistory, { type: 'profile' }, { type: 'accountSetting', data: setting }]);
+          }}
+          onOpenSettings={() => {
+            setShowProfile(false);
+            setShowSettings(true);
+          }}
+        />
+      )}
+      {showSettings && <SettingsOverlay isOpen={showSettings} onClose={() => setShowSettings(false)} />}
       {showPaymentFlow && (
         <PaymentFlow
           step={paymentFlowStep}
@@ -120,13 +136,13 @@ export default function AdminApp() {
         />
       )}
 
-      {/* Bottom Navigation - Hide when PayPad page, payment flow, or profile is open */}
+      {/* Bottom Navigation - Hide when payment flow or profile is open */}
       {!shouldHideNavbar && (
         <div className="absolute bottom-0 left-0 right-0 z-50">
           <BottomNavbar
             activeTab={activeTab as any}
             onTabChange={setActiveTab as any}
-            isPayPadActive={activeTab === 'users'}
+            isPayPadActive={activeTab === 'paypad'}
             canGoBack={selectedAccountSetting !== null}
             onGoBack={handleGoBack}
             isAdmin={isAdmin}
