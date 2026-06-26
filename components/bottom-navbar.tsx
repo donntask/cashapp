@@ -91,16 +91,18 @@ export default function BottomNavbar({ activeTab, onTabChange, isPayPadActive, c
         )}
       </button>
 
-      {/* Search Tab (Navigate to Users for search) */}
-      <button
-        onClick={() => onTabChange('users')}
-        className={`flex flex-col items-center justify-center flex-1 h-full cursor-pointer ${getNavItemColor(activeTab === 'users')}`}
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <circle cx="11" cy="11" r="8" />
-          <line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-      </button>
+      {/* Card Tab (Regular Users) */}
+      {!isAdmin && (
+        <button
+          onClick={() => onTabChange('money')}
+          className={`flex flex-col items-center justify-center flex-1 h-full cursor-pointer ${getNavItemColor(false)}`}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+            <line x1="1" y1="10" x2="23" y2="10" />
+          </svg>
+        </button>
+      )}
 
       {/* Activity Tab */}
       <button
