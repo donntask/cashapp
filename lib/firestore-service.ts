@@ -29,6 +29,7 @@ export interface UserProfile {
   createdAt: Timestamp;
   updatedAt: Timestamp;
   isNewUser: boolean;
+  isAdmin: boolean;
 }
 
 export interface Account {
@@ -73,7 +74,8 @@ export async function createUserProfile(
   firstName: string,
   lastName: string,
   cashtag: string,
-  zipCode: string
+  zipCode: string,
+  isAdmin: boolean = false
 ): Promise<UserProfile> {
   const now = Timestamp.now();
 
@@ -87,6 +89,7 @@ export async function createUserProfile(
     createdAt: now,
     updatedAt: now,
     isNewUser: true,
+    isAdmin,
   };
 
   const userAccountRef = doc(db, 'users', uid);
@@ -134,7 +137,7 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
 }
 
 /**
- * Get user account (balances and stats)
+ * Get user account balances and info
  */
 export async function getUserAccount(uid: string): Promise<Account | null> {
   try {

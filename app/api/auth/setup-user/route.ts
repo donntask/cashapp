@@ -3,7 +3,7 @@ import { createUserProfile } from '@/lib/firestore-service';
 
 export async function POST(request: NextRequest) {
   try {
-    const { uid, email, firstName, lastName, cashtag, zipCode } = await request.json();
+    const { uid, email, firstName, lastName, cashtag, zipCode, isAdmin } = await request.json();
 
     if (!uid || !email || !firstName || !lastName || !cashtag || !zipCode) {
       return NextResponse.json(
@@ -19,7 +19,8 @@ export async function POST(request: NextRequest) {
       firstName,
       lastName,
       cashtag,
-      zipCode
+      zipCode,
+      isAdmin || false
     );
 
     return NextResponse.json({

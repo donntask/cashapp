@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { getUserProfile } from '@/lib/firestore-service';
 
 export interface AuthState {
   contact: string;
@@ -58,28 +59,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Load auth data from localStorage on mount and restore session
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('cashapp_auth_data');
-      const adminStatus = localStorage.getItem('cashapp_admin');
-      const userIdStored = localStorage.getItem('cashapp_user_id');
-      
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setAuthData(parsed);
-        setIsAuthenticated(true);
-        setSessionPersisted(true);
+    const restoreSession = async () => {
+      try {
+        const userIdStored = localStorage.getItem('cashapp_user_id');
+        
+        // If we have a user ID, fetch their profile from Firestore to get admin status
+        if (userIdStored) {
+          try {
+            const userProfile = await getUserProfile(userIdStored);
+            if (userProfile) {
+              setUserId(userIdStored);
+              setIsAdmin(userProfile.isAdmin || false);
+              
+              // Restore auth data from localStorage
+              const stored = localStorage.getItem('cashapp_auth_data');
+              if (stored) {
+                const parsed = JSON.parse(stored);
+                setAuthData(parsed);
+              }
+              
+              setIsAuthenticated(true);
+              setSessionPersisted(true);
+            }
+          } catch (error) {
+            console.error('[v0] Error fetching user profile from Firestore:', error);
+            // Fallback to localStorage
+            const stored = localStorage.getItem('cashapp_auth_data');
+            const adminStatus = localStorage.getItem('cashapp_admin');
+            
+            if (stored) {
+              const parsed = JSON.parse(stored);
+              setAuthData(parsed);
+              setIsAuthenticated(true);
+              setSessionPersisted(true);
+            }
+            
+            if (adminStatus === 'true') {
+              setIsAdmin(true);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('[v0] Failed to load auth data:', error);
       }
-      
-      if (adminStatus === 'true') {
-        setIsAdmin(true);
-      }
-      
-      if (userIdStored) {
-        setUserId(userIdStored);
-      }
-    } catch (error) {
-      console.error('[v0] Failed to load auth data:', error);
-    }
+    };
+
+    restoreSession();
   }, []);
 
   // Check for dev hash changes

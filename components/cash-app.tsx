@@ -12,7 +12,7 @@ import AuthFlow from './auth/auth-flow';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function CashApp() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, sessionPersisted } = useAuth();
   const [authFlowComplete, setAuthFlowComplete] = useState(false);
   const [activeTab, setActiveTab] = useState<'money' | 'paypad' | 'activity'>('money');
   const [showProfile, setShowProfile] = useState(false);
@@ -27,6 +27,12 @@ export default function CashApp() {
   // Check for existing logged-in user on mount
   useEffect(() => {
     try {
+      // If session was restored from auth context, mark auth flow as complete
+      if (sessionPersisted || isAuthenticated) {
+        setAuthFlowComplete(true);
+        return;
+      }
+
       const authData = localStorage.getItem('cashapp_auth_data');
       const appData = localStorage.getItem('cashapp_app_data');
       
@@ -38,15 +44,10 @@ export default function CashApp() {
           return;
         }
       }
-      
-      // Otherwise check if user is authenticated via auth context
-      if (isAuthenticated) {
-        setAuthFlowComplete(true);
-      }
     } catch (error) {
       console.error('[v0] Error checking persistent auth:', error);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, sessionPersisted]);
 
   const handleGoBack = () => {
     if (screenHistory.length > 0) {
