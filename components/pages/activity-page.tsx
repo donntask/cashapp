@@ -7,6 +7,7 @@ import { Timestamp } from 'firebase/firestore';
 
 interface ActivityPageProps {
   onOpenProfile: () => void;
+  isAdmin?: boolean;
 }
 
 interface Transaction {
@@ -17,9 +18,11 @@ interface Transaction {
   note: string;
   timestamp: Timestamp | number;
   status: string;
+  senderCashtag?: string;
+  recipientCashtag?: string;
 }
 
-export default function ActivityPage({ onOpenProfile }: ActivityPageProps) {
+export default function ActivityPage({ onOpenProfile, isAdmin = false }: ActivityPageProps) {
   const { userId } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);

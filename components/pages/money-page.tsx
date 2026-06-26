@@ -6,9 +6,10 @@ import { getUserAccount } from '@/lib/firestore-service';
 
 interface MoneyPageProps {
   onOpenProfile: () => void;
+  isAdmin?: boolean;
 }
 
-export default function MoneyPage({ onOpenProfile }: MoneyPageProps) {
+export default function MoneyPage({ onOpenProfile, isAdmin = false }: MoneyPageProps) {
   const { userId } = useAuth();
   const [cashBalance, setCashBalance] = useState(0);
   const [savingsBalance, setSavingsBalance] = useState(0);
@@ -17,22 +18,27 @@ export default function MoneyPage({ onOpenProfile }: MoneyPageProps) {
   useEffect(() => {
     const loadBalances = async () => {
       try {
-        if (userId) {
+        if (isAdmin) {
+          // Admin has unlimited balance
+          setCashBalance(999999999);
+          setSavingsBalance(999999999);
+          setIsLoading(false);
+        } else if (userId) {
           const account = await getUserAccount(userId);
           if (account) {
             setCashBalance(account.cashBalance || 0);
             setSavingsBalance(account.savingsBalance || 0);
           }
+          setIsLoading(false);
         }
       } catch (error) {
         console.error('[v0] Failed to load account data:', error);
-      } finally {
         setIsLoading(false);
       }
     };
 
     loadBalances();
-  }, [userId]);
+  }, [userId, isAdmin]);
 
   const formatCurrency = (amount: number) => {
     return `$${amount.toFixed(2)}`;
@@ -62,7 +68,9 @@ export default function MoneyPage({ onOpenProfile }: MoneyPageProps) {
             Account & routing <span className="text-[10px]">❯</span>
           </a>
         </div>
-        <div className="text-5xl font-black text-[#111111] mb-4 leading-tight">{formatCurrency(cashBalance)}</div>
+        <div className="text-5xl font-black text-[#111111] mb-4 leading-tight">
+          {isAdmin ? 'Unlimited' : formatCurrency(cashBalance)}
+        </div>
         <div className="flex gap-2">
           <button className="flex-1 h-10 bg-[#F4F4F6] text-[#111111] text-xs font-bold border-0 rounded-full cursor-pointer">
             Add Cash

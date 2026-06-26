@@ -45,7 +45,7 @@ export default function WelcomeFinalStep({ onComplete }: WelcomeFinalStepProps) 
         ✓
       </div>
       <h1 className="text-2xl font-bold text-gray-900 text-center">
-        Welcome to Cash App!
+        Welcome to CashApp!
       </h1>
       {showButton && (
         <button

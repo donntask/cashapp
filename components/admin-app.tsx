@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import MoneyPage from './pages/money-page';
-import PayPadPage from './pages/paypad-page';
+import AdminUsersPage from './pages/admin-users-page';
 import ActivityPage from './pages/activity-page';
 import ProfileOverlay from './overlays/profile-overlay';
 import PaymentFlow from './overlays/payment-flow';
@@ -13,7 +13,7 @@ import { useAuth } from '@/contexts/auth-context';
 export default function AdminApp() {
   const { isAuthenticated } = useAuth();
   const [authFlowComplete, setAuthFlowComplete] = useState(false);
-  const [activeTab, setActiveTab] = useState<'money' | 'paypad' | 'activity'>('money');
+  const [activeTab, setActiveTab] = useState<'money' | 'users' | 'activity'>('money');
   const [showProfile, setShowProfile] = useState(false);
   const [showPaymentFlow, setShowPaymentFlow] = useState(false);
   const [paymentFlowStep, setPaymentFlowStep] = useState<'recipient' | 'pin' | 'status'>('recipient');
@@ -21,6 +21,8 @@ export default function AdminApp() {
   const [globalTransactionType, setGlobalTransactionType] = useState<'Pay' | 'Request'>('Pay');
   const [screenHistory, setScreenHistory] = useState<Array<{ type: string; data?: any }>>([]);
   const [selectedAccountSetting, setSelectedAccountSetting] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(true);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Check for existing logged-in user on mount
   useEffect(() => {
@@ -90,18 +92,17 @@ export default function AdminApp() {
 
       {/* Page Views - Account for fixed navbar height at bottom when navbar is visible */}
       <div className={`flex-1 overflow-y-auto ${!shouldHideNavbar ? 'pb-[70px]' : ''}`}>
-        {activeTab === 'money' && <MoneyPage onOpenProfile={() => setShowProfile(true)} />}
-        {activeTab === 'paypad' && (
-          <PayPadPage
-            amount={padAmount}
-            onAmountChange={setPadAmount}
+        {activeTab === 'money' && <MoneyPage onOpenProfile={() => setShowProfile(true)} isAdmin={isAdmin} />}
+        {activeTab === 'users' && (
+          <AdminUsersPage
             onOpenProfile={() => setShowProfile(true)}
-            onInitiatePayment={handleInitiatePayment}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
             onNavigateToMoney={() => setActiveTab('money')}
             onNavigateToActivity={() => setActiveTab('activity')}
           />
         )}
-        {activeTab === 'activity' && <ActivityPage onOpenProfile={() => setShowProfile(true)} />}
+        {activeTab === 'activity' && <ActivityPage onOpenProfile={() => setShowProfile(true)} isAdmin={isAdmin} />}
       </div>
 
       {/* Overlays */}
@@ -123,11 +124,12 @@ export default function AdminApp() {
       {!shouldHideNavbar && (
         <div className="absolute bottom-0 left-0 right-0 z-50">
           <BottomNavbar
-            activeTab={activeTab}
-            onTabChange={setActiveTab}
-            isPayPadActive={activeTab === 'paypad'}
+            activeTab={activeTab as any}
+            onTabChange={setActiveTab as any}
+            isPayPadActive={activeTab === 'users'}
             canGoBack={selectedAccountSetting !== null}
             onGoBack={handleGoBack}
+            isAdmin={isAdmin}
           />
         </div>
       )}

@@ -10,8 +10,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Bush Fi - Dashboard',
-  description: 'Bush Fi Mobile Payment App',
+  title: 'CashApp - Dashboard',
+  description: 'CashApp Mobile Payment App',
   generator: 'v0.app',
   icons: {
     icon: [

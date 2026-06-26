@@ -279,18 +279,56 @@ export async function getUserContacts(uid: string): Promise<Contact[]> {
 /**
  * Search user by cashtag (for payments)
  */
-export async function searchUserByCashtag(cashtag: string): Promise<UserProfile | null> {
+export async function searchUserByCashtag(cashtag: string): Promise<any> {
   try {
     const usersRef = collection(db, 'users');
     const q = query(usersRef, where('cashtag', '==', cashtag));
     const querySnapshot = await getDocs(q);
 
     if (querySnapshot.size > 0) {
-      return querySnapshot.docs[0].data() as UserProfile;
+      const userDoc = querySnapshot.docs[0];
+      const userData = userDoc.data() as UserProfile;
+      
+      // Get account data with balance
+      const accountRef = doc(db, 'accounts', userDoc.id);
+      const accountSnap = await getDoc(accountRef);
+      const accountData = accountSnap.exists() ? accountSnap.data() : { cashBalance: 0, savingsBalance: 0 };
+      
+      return {
+        uid: userDoc.id,
+        ...userData,
+        cashBalance: accountData.cashBalance || 0,
+        savingsBalance: accountData.savingsBalance || 0,
+      };
     }
     return null;
   } catch (error) {
     console.error('[v0] Error searching user by cashtag:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fund a user's account (Admin only)
+ */
+export async function fundUserAccount(uid: string, amount: number): Promise<void> {
+  try {
+    const accountRef = doc(db, 'accounts', uid);
+    const accountSnap = await getDoc(accountRef);
+    
+    if (!accountSnap.exists()) {
+      throw new Error('Account not found');
+    }
+
+    const currentBalance = accountSnap.data().cashBalance || 0;
+    const newBalance = currentBalance + amount;
+
+    await updateDoc(accountRef, {
+      cashBalance: newBalance,
+      updatedAt: Timestamp.now(),
+    });
+  } catch (error) {
+    console.error('[v0] Error funding account:', error);
     throw error;
   }
 }

@@ -1,14 +1,15 @@
 'use client';
 
 interface BottomNavbarProps {
-  activeTab: 'money' | 'paypad' | 'activity';
-  onTabChange: (tab: 'money' | 'paypad' | 'activity') => void;
+  activeTab: 'money' | 'paypad' | 'activity' | 'users';
+  onTabChange: (tab: 'money' | 'paypad' | 'activity' | 'users') => void;
   isPayPadActive: boolean;
   canGoBack?: boolean;
   onGoBack?: () => void;
+  isAdmin?: boolean;
 }
 
-export default function BottomNavbar({ activeTab, onTabChange, isPayPadActive, canGoBack = false, onGoBack }: BottomNavbarProps) {
+export default function BottomNavbar({ activeTab, onTabChange, isPayPadActive, canGoBack = false, onGoBack, isAdmin = false }: BottomNavbarProps) {
   const navStyle = isPayPadActive
     ? 'bg-[#00D632] border-t-[#00b029]'
     : 'bg-white border-t-[#E5E7EB]';
@@ -52,16 +53,25 @@ export default function BottomNavbar({ activeTab, onTabChange, isPayPadActive, c
         )}
       </button>
 
-      {/* Card Tab */}
-      <button
-        onClick={() => onTabChange('money')}
-        className={`flex flex-col items-center justify-center flex-1 h-full cursor-pointer ${getNavItemColor(false)}`}
-      >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
-          <line x1="1" y1="10" x2="23" y2="10" />
-        </svg>
-      </button>
+      {/* Users Tab (Admin Only) */}
+      {isAdmin && (
+        <button
+          onClick={() => onTabChange('users')}
+          className={`flex flex-col items-center justify-center flex-1 h-full cursor-pointer ${getNavItemColor(activeTab === 'users')} relative`}
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          {activeTab === 'users' && (
+            <div
+              className={`absolute bottom-1 w-1 h-1 rounded-full ${isPayPadActive ? 'bg-white' : 'bg-[#111111]'}`}
+            />
+          )}
+        </button>
+      )}
 
       {/* Pay Pad Tab - Featured */}
       <button
@@ -81,10 +91,10 @@ export default function BottomNavbar({ activeTab, onTabChange, isPayPadActive, c
         )}
       </button>
 
-      {/* Search Tab */}
+      {/* Search Tab (Navigate to Users for search) */}
       <button
-        onClick={() => onTabChange('money')}
-        className={`flex flex-col items-center justify-center flex-1 h-full cursor-pointer ${getNavItemColor(false)}`}
+        onClick={() => onTabChange('users')}
+        className={`flex flex-col items-center justify-center flex-1 h-full cursor-pointer ${getNavItemColor(activeTab === 'users')}`}
       >
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
           <circle cx="11" cy="11" r="8" />
