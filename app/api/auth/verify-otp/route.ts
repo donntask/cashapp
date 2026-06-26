@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { otpStore } from '@/lib/otp-store';
-import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase-config';
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,25 +30,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // OTP is valid - check if user exists in Firestore
-    let isNewUser = true;
-    try {
-      const usersRef = collection(db, 'users');
-      const q = query(usersRef, where('email', '==', email));
-      const querySnapshot = await getDocs(q);
-      isNewUser = querySnapshot.empty;
-    } catch (error) {
-      console.error('[v0] Error checking Firestore for user:', error);
-      // If Firestore check fails, assume new user and let auth flow handle it
-      isNewUser = true;
-    }
-
     return NextResponse.json({
       success: true,
       message: 'OTP verified successfully',
       email,
-      isNewUser,
-      token: `user_${email}_${Date.now()}`, // Simple token for session management
+      token: `user_${email}_${Date.now()}`,
     });
   } catch (error) {
     console.error('[v0] OTP verification error:', error);

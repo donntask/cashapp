@@ -30,9 +30,10 @@ interface AuthFlowProps {
 export default function AuthFlow({ onAuthComplete }: AuthFlowProps) {
   const [currentStep, setCurrentStep] = useState<AuthStep>('auth-start');
   const [history, setHistory] = useState<AuthStep[]>([]);
-  const { authData, updateAuthData, completeAuth, isOtpVerified, isNewUser } = useAuth();
+  const { authData, updateAuthData, completeAuth, isOtpVerified, isNewUser, setIsNewUser } = useAuth();
   const [isEmailMode, setIsEmailMode] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState('');
+  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
 
   const navigateTo = (step: AuthStep) => {
     setHistory([...history, currentStep]);
@@ -47,12 +48,39 @@ export default function AuthFlow({ onAuthComplete }: AuthFlowProps) {
     setCurrentStep(previousStep);
   };
 
-  const handleAuthStartNext = () => {
+  const handleAuthStartNext = async () => {
     if (!authData.contact.trim()) return;
 
     if (isEmailMode || authData.contact.includes('@')) {
-      setVerificationEmail(authData.contact);
-      navigateTo('code-verify');
+      const email = authData.contact;
+      setVerificationEmail(email);
+      
+      // Check if email exists in Firestore
+      setIsCheckingEmail(true);
+      try {
+        const response = await fetch('/api/auth/check-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email }),
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          // Set isNewUser based on what we found
+          setIsNewUser(data.isNewUser);
+          updateAuthData({ email });
+          navigateTo('code-verify');
+        } else {
+          console.error('[v0] Error checking email:', data.error);
+          navigateTo('code-verify'); // Continue anyway
+        }
+      } catch (error) {
+        console.error('[v0] Error checking email:', error);
+        navigateTo('code-verify'); // Continue anyway
+      } finally {
+        setIsCheckingEmail(false);
+      }
     } else {
       navigateTo('email-required');
     }
@@ -135,7 +163,7 @@ export default function AuthFlow({ onAuthComplete }: AuthFlowProps) {
                   onAuthComplete();
                 }, 500);
               } else {
-                // For new users, continue with registration steps
+                // For new users, show registration steps
                 navigateTo('debit-card');
               }
             }}
