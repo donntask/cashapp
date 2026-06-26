@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { otpStore } from '@/lib/otp-store';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase-config';
 
 export async function POST(request: NextRequest) {
   try {
-    const { email, otp, registeredUsers } = await request.json();
+    const { email, otp } = await request.json();
 
     if (!email || !otp) {
       return NextResponse.json(
@@ -30,15 +32,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // OTP is valid - check if user is registered
-    // Use the registeredUsers list passed from the client, or fall back to global
-    const usersList = Array.isArray(registeredUsers) ? registeredUsers : ((global as any).registeredUsers || []);
-    const isNewUser = !usersList.includes(email);
-
-    // Store in global for future verification
-    (global as any).registeredUsers = (global as any).registeredUsers || [];
-    if (!isNewUser && !(global as any).registeredUsers.includes(email)) {
-      (global as any).registeredUsers.push(email);
+    // OTP is valid - check if user exists in Firestore
+    let isNewUser = true;
+    try {
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('email', '==', email));
+      const querySnapshot = await getDocs(q);
+      isNewUser = querySnapshot.empty;
+    } catch (error) {
+      console.error('[v0] Error checking Firestore for user:', error);
+      // If Firestore check fails, assume new user and let auth flow handle it
+      isNewUser = true;
     }
 
     return NextResponse.json({

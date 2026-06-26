@@ -128,8 +128,8 @@ export default function AuthFlow({ onAuthComplete }: AuthFlowProps) {
           <CodeVerifyStep
             verificationEmail={verificationEmail}
             onNext={() => {
-              // If OTP is verified and user is NOT new, go directly to dashboard
-              if (isOtpVerified && !isNewUser) {
+              // If user is NOT new (existing user), go directly to dashboard
+              if (!isNewUser) {
                 completeAuth();
                 setTimeout(() => {
                   onAuthComplete();
