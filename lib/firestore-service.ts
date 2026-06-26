@@ -20,10 +20,15 @@ export interface UserProfile {
   lastName: string;
   cashtag: string;
   zipCode: string;
+  phoneNumber?: string;
+  bankAccount?: {
+    cardNumber: string;
+    expiryDate: string;
+    bankName: string;
+  };
   createdAt: Timestamp;
   updatedAt: Timestamp;
   isNewUser: boolean;
-  isAdmin?: boolean;
 }
 
 export interface Account {
@@ -68,8 +73,7 @@ export async function createUserProfile(
   firstName: string,
   lastName: string,
   cashtag: string,
-  zipCode: string,
-  isAdmin: boolean = false
+  zipCode: string
 ): Promise<UserProfile> {
   const now = Timestamp.now();
 
@@ -83,7 +87,6 @@ export async function createUserProfile(
     createdAt: now,
     updatedAt: now,
     isNewUser: true,
-    isAdmin,
   };
 
   const userAccountRef = doc(db, 'users', uid);
@@ -131,25 +134,7 @@ export async function getUserProfile(uid: string): Promise<UserProfile | null> {
 }
 
 /**
- * Get user admin status from Firestore
- */
-export async function getUserAdminStatus(uid: string): Promise<boolean> {
-  try {
-    const userRef = doc(db, 'users', uid);
-    const userSnap = await getDoc(userRef);
-    
-    if (userSnap.exists()) {
-      return userSnap.data().isAdmin || false;
-    }
-    return false;
-  } catch (error) {
-    console.error('[v0] Error fetching admin status:', error);
-    return false;
-  }
-}
-
-/**
- * Get user account data
+ * Get user account (balances and stats)
  */
 export async function getUserAccount(uid: string): Promise<Account | null> {
   try {

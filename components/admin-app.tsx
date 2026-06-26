@@ -12,7 +12,7 @@ import AuthFlow from './auth/auth-flow';
 import { useAuth } from '@/contexts/auth-context';
 
 export default function AdminApp() {
-  const { isAuthenticated, isAdmin, sessionPersisted, userId, setIsAdmin } = useAuth();
+  const { isAuthenticated, isAdmin, sessionPersisted } = useAuth();
   const [authFlowComplete, setAuthFlowComplete] = useState(false);
   const [activeTab, setActiveTab] = useState<'money' | 'paypad' | 'activity'>('money');
   const [showProfile, setShowProfile] = useState(false);
@@ -25,43 +25,31 @@ export default function AdminApp() {
   const [selectedAccountSetting, setSelectedAccountSetting] = useState<string | null>(null);
   const [searchedUsers, setSearchedUsers] = useState<any[]>([]);
 
-  // Check for existing logged-in user on mount and verify Firestore admin status
+  // Check for existing logged-in user on mount and restore session
   useEffect(() => {
-    const checkAuthStatus = async () => {
-      try {
-        // If session was persisted in auth context, restore it
-        if (sessionPersisted || isAuthenticated) {
+    try {
+      // If session was persisted in auth context, restore it
+      if (sessionPersisted || isAuthenticated) {
+        setAuthFlowComplete(true);
+        return;
+      }
+      
+      // Otherwise check localStorage
+      const authData = localStorage.getItem('cashapp_auth_data');
+      const appData = localStorage.getItem('cashapp_app_data');
+      
+      // If user data exists in localStorage, they should remain logged in
+      if (authData && appData) {
+        const parsed = JSON.parse(authData);
+        if (parsed && Object.keys(parsed).length > 0) {
           setAuthFlowComplete(true);
-          
-          // Verify admin status from Firestore
-          if (userId) {
-            const { getUserAdminStatus } = await import('@/lib/firestore-service');
-            const adminStatus = await getUserAdminStatus(userId);
-            setIsAdmin(adminStatus);
-          }
           return;
         }
-        
-        // Otherwise check localStorage
-        const authData = localStorage.getItem('cashapp_auth_data');
-        const userIdStored = localStorage.getItem('cashapp_user_id');
-        
-        // If user data exists in localStorage, they should remain logged in
-        if (authData && userIdStored) {
-          setAuthFlowComplete(true);
-          
-          // Verify admin status from Firestore
-          const { getUserAdminStatus } = await import('@/lib/firestore-service');
-          const adminStatus = await getUserAdminStatus(userIdStored);
-          setIsAdmin(adminStatus);
-        }
-      } catch (error) {
-        console.error('[v0] Error checking persistent auth:', error);
       }
-    };
-    
-    checkAuthStatus();
-  }, [isAuthenticated, sessionPersisted, userId, setIsAdmin]);
+    } catch (error) {
+      console.error('[v0] Error checking persistent auth:', error);
+    }
+  }, [isAuthenticated, sessionPersisted]);
 
   const handleGoBack = () => {
     if (screenHistory.length > 0) {

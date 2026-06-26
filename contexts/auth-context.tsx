@@ -44,39 +44,17 @@ const initialAuthState: AuthState = {
   cardNumber: '',
 };
 
-// Try to restore session from localStorage immediately
-const getInitialAuthState = () => {
-  if (typeof window === 'undefined') return { authenticated: false, persisted: false };
-  
-  try {
-    const stored = localStorage.getItem('cashapp_auth_data');
-    const devSession = localStorage.getItem('cashapp_dev_session');
-    
-    if (stored) {
-      return { authenticated: true, persisted: true };
-    }
-    
-    if (devSession === 'true') {
-      return { authenticated: true, persisted: true };
-    }
-  } catch (error) {
-    console.error('[v0] Failed to load auth data:', error);
-  }
-  
-  return { authenticated: window.location.hash === '#dev', persisted: false };
-};
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const initialState = getInitialAuthState();
-  
   const [authData, setAuthData] = useState<AuthState>(initialAuthState);
-  const [isAuthenticated, setIsAuthenticated] = useState(initialState.authenticated);
+  const [isAuthenticated, setIsAuthenticated] = useState(
+    typeof window !== 'undefined' && window.location.hash === '#dev'
+  );
   const [isOtpVerified, setIsOtpVerified] = useState(false);
   const [isNewUser, setIsNewUser] = useState(true);
   const [verifiedEmail, setVerifiedEmail] = useState('');
   const [userId, setUserId] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
-  const [sessionPersisted, setSessionPersisted] = useState(initialState.persisted);
+  const [sessionPersisted, setSessionPersisted] = useState(false);
 
   // Load auth data from localStorage on mount and restore session
   useEffect(() => {
@@ -104,36 +82,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  // Check for dev hash changes and save dev session immediately
+  // Check for dev hash changes
   useEffect(() => {
-    const saveDevSession = () => {
-      if (typeof window !== 'undefined' && window.location.hash === '#dev') {
+    const handleHashChange = () => {
+      if (window.location.hash === '#dev') {
         setIsAuthenticated(true);
-        setSessionPersisted(true);
-        // Save mock auth data for dev mode
-        try {
-          const mockAuthData = {
-            firstName: 'Dev',
-            lastName: 'User',
-            email: 'dev@example.com',
-            cashtag: 'devuser',
-            contact: '5551234567',
-            zipCode: '10001'
-          };
-          localStorage.setItem('cashapp_auth_data', JSON.stringify(mockAuthData));
-          localStorage.setItem('cashapp_dev_session', 'true');
-        } catch (error) {
-          console.error('[v0] Failed to save dev session:', error);
-        }
       }
     };
-    
-    // Save on mount
-    saveDevSession();
-    
-    // Also listen for hash changes
-    window.addEventListener('hashchange', saveDevSession);
-    return () => window.removeEventListener('hashchange', saveDevSession);
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
 
   const updateAuthData = (data: Partial<AuthState>) => {
