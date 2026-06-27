@@ -4,7 +4,7 @@ import { db } from '@/lib/firebase-config';
 
 export async function POST(request: NextRequest) {
   try {
-    const { cashtag, includeTransactions = false } = await request.json();
+    const { cashtag } = await request.json();
 
     if (!cashtag || cashtag.trim().length === 0) {
       return NextResponse.json(
@@ -13,73 +13,59 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Search for user by cashtag (case-insensitive)
-    const usersRef = collection(db, 'users');
-    const searchTerm = cashtag.toLowerCase().replace(/^\$/, '').trim(); // Remove $ if present and lowercase
-    
-    let users: any[] = [];
-    
-    // Try exact match first (case-insensitive comparison in Firebase)
-    try {
-      const exactQuery = query(
-        usersRef,
-        where('cashtag', '==', searchTerm),
-        limit(5)
-      );
-      const exactSnapshot = await getDocs(exactQuery);
-      
-      if (!exactSnapshot.empty) {
-        users = exactSnapshot.docs.map(doc => {
-          const data = doc.data();
-          return {
-            uid: doc.id,
-            firstName: data.firstName,
-            lastName: data.lastName,
-            cashtag: data.cashtag,
-            email: data.email,
-            isAdmin: data.isAdmin || false,
-          };
-        });
-      }
-    } catch (e) {
-      // Try partial match if exact match fails
-    }
-    
-    // If no exact match, get all users and filter client-side for partial match
-    if (users.length === 0) {
-      try {
-        const allUsersQuery = query(usersRef, limit(100));
-        const allUsersSnapshot = await getDocs(allUsersQuery);
-        
-        users = allUsersSnapshot.docs
-          .map(doc => {
-            const data = doc.data();
-            return {
-              uid: doc.id,
-              firstName: data.firstName,
-              lastName: data.lastName,
-              cashtag: data.cashtag || '',
-              email: data.email,
-              isAdmin: data.isAdmin || false,
-            };
-          })
-          .filter(user => user.cashtag && user.cashtag.toLowerCase().includes(searchTerm))
-          .slice(0, 5);
-      } catch (e) {
-        console.error('[v0] Search failed:', e);
-      }
+    // Strip $ prefix and trim; keep both original and lowercase for matching
+    const raw = cashtag.replace(/^\$/, '').trim();
+    const lower = raw.toLowerCase();
+
+    if (!lower) {
+      return NextResponse.json({ success: true, users: [], count: 0 });
     }
 
-    return NextResponse.json({
-      success: true,
-      users,
-      count: users.length,
-    });
+    const usersRef = collection(db, 'users');
+    const foundMap = new Map<string, any>();
+
+    // 1. Exact match on stored cashtag (as-is)
+    try {
+      const snap = await getDocs(query(usersRef, where('cashtag', '==', raw), limit(10)));
+      snap.docs.forEach((d) => foundMap.set(d.id, { uid: d.id, ...d.data() }));
+    } catch {}
+
+    // 2. Lowercase exact match (handles mixed-case stored values)
+    if (foundMap.size === 0) {
+      try {
+        const snap = await getDocs(query(usersRef, where('cashtag', '==', lower), limit(10)));
+        snap.docs.forEach((d) => foundMap.set(d.id, { uid: d.id, ...d.data() }));
+      } catch {}
+    }
+
+    // 3. Partial / prefix scan — fetch up to 200 users and filter client-side
+    if (foundMap.size === 0) {
+      try {
+        const snap = await getDocs(query(usersRef, limit(200)));
+        snap.docs.forEach((d) => {
+          const data = d.data();
+          const stored = (data.cashtag || '').toLowerCase();
+          if (stored.includes(lower)) {
+            foundMap.set(d.id, { uid: d.id, ...data });
+          }
+        });
+      } catch {}
+    }
+
+    const users = Array.from(foundMap.values())
+      .slice(0, 8)
+      .map((u) => ({
+        uid: u.uid,
+        firstName: u.firstName || '',
+        lastName: u.lastName || '',
+        cashtag: u.cashtag || '',
+        email: u.email || '',
+        isAdmin: u.isAdmin || false,
+      }));
+
+    return NextResponse.json({ success: true, users, count: users.length });
   } catch (error) {
     console.error('[v0] User search error:', error);
-    return NextResponse.json(
-      { error: 'Failed to search users' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Failed to search users' }, { status: 500 });
   }
 }

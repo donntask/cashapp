@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/contexts/toast-context';
 import { addTransaction, getUserAccount, updateCashBalance } from '@/lib/firestore-service';
 import { Timestamp } from 'firebase/firestore';
 
@@ -9,6 +10,7 @@ interface StatusScreenProps {
   amount: string;
   transactionType: 'Pay' | 'Request';
   recipient: string;
+  note?: string;
   onClose: () => void;
 }
 
@@ -16,9 +18,11 @@ export default function StatusScreen({
   amount,
   transactionType,
   recipient,
+  note = '',
   onClose,
 }: StatusScreenProps) {
   const { userId, isAdmin } = useAuth();
+  const { addToast } = useToast();
 
   // Save transaction to Firestore (and deduct balance for payments)
   useEffect(() => {
@@ -34,7 +38,7 @@ export default function StatusScreen({
             type: transactionType === 'Pay' ? 'payment-sent' : 'payment-received',
             amount: parsedAmount,
             recipient: cleanRecipient,
-            note: '',
+            note,
             timestamp: Timestamp.now(),
             status: 'completed',
           });
@@ -47,8 +51,16 @@ export default function StatusScreen({
               await updateCashBalance(userId, newBalance);
             }
           }
+
+          // Success toast
+          if (transactionType === 'Pay') {
+            addToast(`$${parsedAmount.toFixed(2)} sent to $${cleanRecipient}`, 'success');
+          } else {
+            addToast(`$${parsedAmount.toFixed(2)} requested from $${cleanRecipient}`, 'info');
+          }
         } catch (error) {
           console.error('[v0] Failed to save transaction to Firestore:', error);
+          addToast('Transaction failed. Please try again.', 'error');
         }
       }
 
@@ -62,7 +74,7 @@ export default function StatusScreen({
           type: transactionType === 'Pay' ? 'payment-sent' : 'payment-received',
           amount: parsedAmount,
           recipient: cleanRecipient,
-          note: '',
+          note,
           timestamp: Date.now(),
           status: 'completed',
         });

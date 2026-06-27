@@ -21,9 +21,11 @@ export default function PaymentFlow({
   onClose,
 }: PaymentFlowProps) {
   const [recipient, setRecipient] = useState('');
+  const [note, setNote] = useState('');
 
-  const handleAdvanceToPin = (selectedRecipient: string) => {
+  const handleAdvanceToPin = (selectedRecipient: string, selectedNote: string) => {
     setRecipient(selectedRecipient);
+    setNote(selectedNote);
     onStepChange('pin');
   };
 
@@ -50,7 +52,13 @@ export default function PaymentFlow({
         />
       )}
       {step === 'status' && (
-        <StatusScreen amount={amount} transactionType={transactionType} recipient={recipient} onClose={onClose} />
+        <StatusScreen
+          amount={amount}
+          transactionType={transactionType}
+          recipient={recipient}
+          note={note}
+          onClose={onClose}
+        />
       )}
     </div>
   );

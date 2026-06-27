@@ -12,13 +12,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Store cashtag lowercased so searches always match regardless of input casing
+    const normalizedCashtag = cashtag.toLowerCase().trim();
+
     // Create user profile and account structure in Firestore
     const userProfile = await createUserProfile(
       uid,
       email,
       firstName,
       lastName,
-      cashtag,
+      normalizedCashtag,
       zipCode,
       isAdmin || false
     );
