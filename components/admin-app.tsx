@@ -6,6 +6,7 @@ import PayPadPage from './pages/paypad-page';
 import ActivityPage from './pages/activity-page';
 import ProfileOverlay from './overlays/profile-overlay';
 import SettingsOverlay from './overlays/settings-overlay';
+import SecurityPrivacyOverlay from './overlays/security-privacy-overlay';
 import AdminActionsOverlay from './overlays/admin-actions-overlay';
 import PaymentFlow from './overlays/payment-flow';
 import BottomNavbar from './bottom-navbar';
@@ -18,6 +19,7 @@ export default function AdminApp() {
   const [activeTab, setActiveTab] = useState<'money' | 'paypad' | 'activity'>('money');
   const [showProfile, setShowProfile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showSecurityPrivacy, setShowSecurityPrivacy] = useState(false);
   const [showAdminActions, setShowAdminActions] = useState(false);
   const [showPaymentFlow, setShowPaymentFlow] = useState(false);
   const [paymentFlowStep, setPaymentFlowStep] = useState<'recipient' | 'pin' | 'status'>('recipient');
@@ -85,7 +87,7 @@ export default function AdminApp() {
   }
 
   // Hide navbar when PayPad page is active, payment flow is open, or profile is open
-  const shouldHideNavbar = activeTab === 'paypad' || showPaymentFlow || showProfile || showSettings || showAdminActions;
+  const shouldHideNavbar = activeTab === 'paypad' || showPaymentFlow || showProfile || showSettings || showSecurityPrivacy || showAdminActions;
   
   return (
     <div className="relative w-full h-screen bg-[#F4F4F6] flex flex-col shadow-2xl overflow-hidden select-none" style={{ WebkitUserSelect: 'none', userSelect: 'none' }}>
@@ -124,8 +126,13 @@ export default function AdminApp() {
         <ProfileOverlay 
           onClose={() => setShowProfile(false)} 
           onSelectSetting={(setting: string) => {
-            setSelectedAccountSetting(setting);
-            setScreenHistory([...screenHistory, { type: 'profile' }, { type: 'accountSetting', data: setting }]);
+            if (setting === 'Security & Privacy') {
+              setShowProfile(false);
+              setShowSecurityPrivacy(true);
+            } else {
+              setSelectedAccountSetting(setting);
+              setScreenHistory([...screenHistory, { type: 'profile' }, { type: 'accountSetting', data: setting }]);
+            }
           }}
           onOpenSettings={() => {
             setShowProfile(false);
@@ -134,6 +141,7 @@ export default function AdminApp() {
         />
       )}
       {showSettings && <SettingsOverlay isOpen={showSettings} onClose={() => setShowSettings(false)} />}
+      {showSecurityPrivacy && <SecurityPrivacyOverlay isOpen={showSecurityPrivacy} onClose={() => setShowSecurityPrivacy(false)} />}
       {showAdminActions && (
         <AdminActionsOverlay isOpen={showAdminActions} onClose={() => setShowAdminActions(false)} />
       )}

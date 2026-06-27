@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { searchUserByCashtag, updateUserAdminStatus } from '@/lib/firestore-service';
+import CreatePinOverlay from './create-pin-overlay';
 
 interface SettingsOverlayProps {
   isOpen: boolean;
@@ -10,7 +11,7 @@ interface SettingsOverlayProps {
 }
 
 export default function SettingsOverlay({ isOpen, onClose }: SettingsOverlayProps) {
-  const { isAdmin, resetAuth } = useAuth();
+  const { isAdmin, resetAuth, verifiedEmail } = useAuth();
   const [activeSection, setActiveSection] = useState<'main' | 'security' | 'admin-management'>('main');
   const [searchCashtag, setSearchCashtag] = useState('');
   const [foundUser, setFoundUser] = useState<any>(null);
@@ -18,6 +19,7 @@ export default function SettingsOverlay({ isOpen, onClose }: SettingsOverlayProp
   const [isUpdating, setIsUpdating] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
+  const [showCreatePin, setShowCreatePin] = useState(false);
 
   if (!isOpen) return null;
 
@@ -120,8 +122,16 @@ export default function SettingsOverlay({ isOpen, onClose }: SettingsOverlayProp
           {/* Security Settings */}
           {activeSection === 'security' && (
             <div className="p-6 space-y-4">
-              <div>
-                <h3 className="font-semibold text-gray-900 mb-2">Add New Admin</h3>
+              <button
+                onClick={() => setShowCreatePin(true)}
+                className="w-full px-4 py-3 text-left bg-blue-100 hover:bg-blue-200 rounded-lg cursor-pointer font-semibold text-blue-900"
+              >
+                Create Payment PIN
+              </button>
+              
+              {isAdmin && (
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-2">Add New Admin</h3>
                 <p className="text-sm text-gray-600 mb-4">Search for a user by cashtag and make them an admin.</p>
                 
                 <div className="space-y-3">
@@ -161,7 +171,8 @@ export default function SettingsOverlay({ isOpen, onClose }: SettingsOverlayProp
                     </div>
                   )}
                 </div>
-              </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -189,6 +200,12 @@ export default function SettingsOverlay({ isOpen, onClose }: SettingsOverlayProp
           </button>
         </div>
       </div>
+
+      <CreatePinOverlay
+        isOpen={showCreatePin}
+        onClose={() => setShowCreatePin(false)}
+        email={verifiedEmail}
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useToast } from '@/contexts/toast-context';
 
 interface PinScreenProps {
   amount: string;
@@ -16,15 +17,44 @@ export default function PinScreen({
   onClose,
 }: PinScreenProps) {
   const [pin, setPin] = useState('');
+  const [hasSufficientFunds, setHasSufficientFunds] = useState(true);
+  const [userBalance, setUserBalance] = useState(0);
+  const { addToast } = useToast();
+
+  // Check balance on mount
+  useEffect(() => {
+    try {
+      const appData = localStorage.getItem('cashapp_app_data');
+      if (appData) {
+        const data = JSON.parse(appData);
+        const balance = data.cashBalance || 0;
+        const isAdmin = localStorage.getItem('cashapp_admin') === 'true';
+        setUserBalance(balance);
+        
+        if (!isAdmin && balance < parseFloat(amount)) {
+          setHasSufficientFunds(false);
+        }
+      }
+    } catch (error) {
+      console.error('[v0] Error checking balance:', error);
+    }
+  }, [amount]);
 
   useEffect(() => {
     if (pin.length === 4) {
+      // Validate funds before completing
+      if (!hasSufficientFunds) {
+        addToast(`Insufficient funds. You have $${userBalance.toFixed(2)}`, 'error');
+        setPin('');
+        return;
+      }
+
       const timer = setTimeout(() => {
         onPinComplete();
       }, 300);
       return () => clearTimeout(timer);
     }
-  }, [pin, onPinComplete]);
+  }, [pin, onPinComplete, hasSufficientFunds, userBalance, addToast]);
 
   const handleKeyPress = (key: string) => {
     if (key === 'back') {
