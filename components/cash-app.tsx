@@ -84,26 +84,54 @@ export default function CashApp() {
     return <AuthFlow onAuthComplete={() => setAuthFlowComplete(true)} />;
   }
 
-  // Hide navbar when PayPad page is active, payment flow is open, or profile/settings is open
-  const shouldHideNavbar = activeTab === 'paypad' || showPaymentFlow || showProfile || showSettings || showSecurityPrivacy || showAdminActions;
-  
-  return (
-    <div className="relative w-full max-w-[412px] h-screen max-h-[844px] bg-[#F4F4F6] flex flex-col shadow-2xl overflow-hidden select-none" style={{ WebkitUserSelect: 'none', userSelect: 'none' }}>
-      {/* Admin Header */}
-      {isAdmin && (
+  // Super admin always lands on admin-only view — never the user side
+  if (isAdmin) {
+    return (
+      <div className="relative w-full max-w-[412px] h-screen max-h-[844px] bg-[#F4F4F6] flex flex-col shadow-2xl overflow-hidden select-none" style={{ WebkitUserSelect: 'none', userSelect: 'none' }}>
         <div className="bg-[#00D632] text-white px-6 py-3 flex justify-between items-center flex-shrink-0">
           <h1 className="text-xl font-bold">Admin Dashboard</h1>
           <div className="text-sm opacity-90">CashApp Admin</div>
         </div>
-      )}
+        <div className="flex-1 overflow-y-auto">
+          <MoneyPage
+            onOpenProfile={() => setShowProfile(true)}
+            isAdmin={true}
+            onOpenAdminActions={() => setShowAdminActions(true)}
+          />
+        </div>
+        {showProfile && (
+          <ProfileOverlay
+            onClose={() => setShowProfile(false)}
+            onSelectSetting={(setting: string) => {
+              if (setting === 'Security & Privacy') {
+                setShowProfile(false);
+                setShowSecurityPrivacy(true);
+              }
+            }}
+            onOpenSettings={() => {
+              setShowProfile(false);
+              setShowSettings(true);
+            }}
+          />
+        )}
+        {showSettings && <SettingsOverlay isOpen={showSettings} onClose={() => setShowSettings(false)} />}
+        {showSecurityPrivacy && <SecurityPrivacyOverlay isOpen={showSecurityPrivacy} onClose={() => setShowSecurityPrivacy(false)} />}
+        <AdminActionsOverlay isOpen={showAdminActions} onClose={() => setShowAdminActions(false)} />
+      </div>
+    );
+  }
 
-      {/* Page Views - Account for fixed navbar height at bottom when navbar is visible */}
+  // Regular user view
+  const shouldHideNavbar = activeTab === 'paypad' || showPaymentFlow || showProfile || showSettings || showSecurityPrivacy;
+
+  return (
+    <div className="relative w-full max-w-[412px] h-screen max-h-[844px] bg-[#F4F4F6] flex flex-col shadow-2xl overflow-hidden select-none" style={{ WebkitUserSelect: 'none', userSelect: 'none' }}>
+      {/* Page Views */}
       <div className={`flex-1 overflow-y-auto ${!shouldHideNavbar ? 'pb-[70px]' : ''}`}>
         {activeTab === 'money' && (
-          <MoneyPage 
-            onOpenProfile={() => setShowProfile(true)} 
-            isAdmin={isAdmin}
-            onOpenAdminActions={isAdmin ? () => setShowAdminActions(true) : undefined}
+          <MoneyPage
+            onOpenProfile={() => setShowProfile(true)}
+            isAdmin={false}
           />
         )}
         {activeTab === 'paypad' && (
@@ -114,7 +142,7 @@ export default function CashApp() {
             onInitiatePayment={handleInitiatePayment}
             onNavigateToMoney={() => setActiveTab('money')}
             onNavigateToActivity={() => setActiveTab('activity')}
-            isAdmin={isAdmin}
+            isAdmin={false}
           />
         )}
         {activeTab === 'activity' && <ActivityPage onOpenProfile={() => setShowProfile(true)} />}
@@ -122,8 +150,8 @@ export default function CashApp() {
 
       {/* Overlays */}
       {showProfile && (
-        <ProfileOverlay 
-          onClose={() => setShowProfile(false)} 
+        <ProfileOverlay
+          onClose={() => setShowProfile(false)}
           onSelectSetting={(setting: string) => {
             if (setting === 'Security & Privacy') {
               setShowProfile(false);
@@ -141,7 +169,6 @@ export default function CashApp() {
       )}
       {showSettings && <SettingsOverlay isOpen={showSettings} onClose={() => setShowSettings(false)} />}
       {showSecurityPrivacy && <SecurityPrivacyOverlay isOpen={showSecurityPrivacy} onClose={() => setShowSecurityPrivacy(false)} />}
-      {showAdminActions && isAdmin && <AdminActionsOverlay isOpen={showAdminActions} onClose={() => setShowAdminActions(false)} />}
       {showPaymentFlow && (
         <PaymentFlow
           step={paymentFlowStep}
@@ -152,7 +179,7 @@ export default function CashApp() {
         />
       )}
 
-      {/* Bottom Navigation - Hide when PayPad page, payment flow, or profile is open */}
+      {/* Bottom Navigation */}
       {!shouldHideNavbar && (
         <div className="absolute bottom-0 left-0 right-0 z-50">
           <BottomNavbar

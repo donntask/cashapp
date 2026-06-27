@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAuth } from '@/contexts/auth-context';
+import { useAuth, SUPER_ADMIN_EMAIL } from '@/contexts/auth-context';
 import AuthStartStep from './steps/auth-start-step';
 import EmailRequiredStep from './steps/email-required-step';
 import CodeVerifyStep from './steps/code-verify-step';
@@ -12,7 +12,7 @@ import ZipCodeStep from './steps/zip-code-step';
 import InviteFriendsStep from './steps/invite-friends-step';
 import WelcomeFinalStep from './steps/welcome-final-step';
 
-export type AuthStep = 
+export type AuthStep =
   | 'auth-start'
   | 'email-required'
   | 'code-verify'
@@ -30,10 +30,12 @@ interface AuthFlowProps {
 export default function AuthFlow({ onAuthComplete }: AuthFlowProps) {
   const [currentStep, setCurrentStep] = useState<AuthStep>('auth-start');
   const [history, setHistory] = useState<AuthStep[]>([]);
-  const { authData, updateAuthData, completeAuth, isOtpVerified, isNewUser, setIsNewUser } = useAuth();
+  const { authData, updateAuthData, completeAuth, completeAuthWithFirestore, isNewUser, setIsNewUser } = useAuth();
   const [isEmailMode, setIsEmailMode] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState('');
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
+  // Stored from check-email response for use after OTP verification
+  const [existingUserId, setExistingUserId] = useState<string | null>(null);
 
   const navigateTo = (step: AuthStep) => {
     setHistory([...history, currentStep]);
@@ -54,7 +56,11 @@ export default function AuthFlow({ onAuthComplete }: AuthFlowProps) {
     if (isEmailMode || authData.contact.includes('@')) {
       const email = authData.contact;
       setVerificationEmail(email);
-      
+      updateAuthData({ email });
+
+      // Super admin always treated as existing user — skip registration
+      const isSuperAdmin = email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+
       // Check if email exists in Firestore
       setIsCheckingEmail(true);
       try {
@@ -63,33 +69,76 @@ export default function AuthFlow({ onAuthComplete }: AuthFlowProps) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email }),
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
-          // Set isNewUser based on what we found
-          setIsNewUser(data.isNewUser);
-          updateAuthData({ email });
-          navigateTo('code-verify');
+          setIsNewUser(isSuperAdmin ? false : data.isNewUser);
+          // Store the uid if the user already exists
+          if (data.uid) setExistingUserId(data.uid);
         } else {
           console.error('[v0] Error checking email:', data.error);
-          navigateTo('code-verify'); // Continue anyway
+          setIsNewUser(!isSuperAdmin);
         }
       } catch (error) {
         console.error('[v0] Error checking email:', error);
-        navigateTo('code-verify'); // Continue anyway
+        setIsNewUser(!isSuperAdmin);
       } finally {
         setIsCheckingEmail(false);
       }
+
+      navigateTo('code-verify');
     } else {
       navigateTo('email-required');
     }
   };
 
-  const handleEmailRequiredNext = () => {
+  const handleEmailRequiredNext = async () => {
     if (!authData.email.trim()) return;
-    setVerificationEmail(authData.email);
+    const email = authData.email;
+    setVerificationEmail(email);
+    updateAuthData({ email });
+
+    const isSuperAdmin = email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+
+    try {
+      const response = await fetch('/api/auth/check-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setIsNewUser(isSuperAdmin ? false : data.isNewUser);
+        if (data.uid) setExistingUserId(data.uid);
+      }
+    } catch {}
+
     navigateTo('code-verify');
+  };
+
+  // Called after OTP is successfully verified
+  const handleOtpVerified = async () => {
+    const isSuperAdmin = verificationEmail.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+
+    if (!isNewUser || isSuperAdmin) {
+      // Existing user or super admin: complete auth immediately
+      // Super admin without a Firestore uid still gets completeAuth() so they land on admin dashboard
+      if (existingUserId) {
+        try {
+          await completeAuthWithFirestore(existingUserId, true);
+        } catch {
+          completeAuth();
+        }
+      } else {
+        // Super admin who hasn't been registered yet — still complete with admin flag
+        completeAuth();
+      }
+      onAuthComplete();
+    } else {
+      // Brand new user: show registration flow
+      navigateTo('debit-card');
+    }
   };
 
   const handleWelcomeComplete = () => {
@@ -149,24 +198,14 @@ export default function AuthFlow({ onAuthComplete }: AuthFlowProps) {
         {currentStep === 'email-required' && (
           <EmailRequiredStep
             onNext={handleEmailRequiredNext}
+            isLoading={isCheckingEmail}
           />
         )}
 
         {currentStep === 'code-verify' && (
           <CodeVerifyStep
             verificationEmail={verificationEmail}
-            onNext={() => {
-              // If user is NOT new (existing user), go directly to dashboard
-              if (!isNewUser) {
-                completeAuth();
-                setTimeout(() => {
-                  onAuthComplete();
-                }, 500);
-              } else {
-                // For new users, show registration steps
-                navigateTo('debit-card');
-              }
-            }}
+            onNext={handleOtpVerified}
           />
         )}
 
