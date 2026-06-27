@@ -62,6 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const restoreSession = async () => {
       try {
         const userIdStored = localStorage.getItem('cashapp_user_id');
+        const SUPER_ADMIN_EMAIL = 'no-reply@cashappfi.online';
         
         // If we have a user ID, fetch their profile from Firestore to get admin status
         if (userIdStored) {
@@ -69,13 +70,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             const userProfile = await getUserProfile(userIdStored);
             if (userProfile) {
               setUserId(userIdStored);
-              setIsAdmin(userProfile.isAdmin || false);
               
               // Restore auth data from localStorage
               const stored = localStorage.getItem('cashapp_auth_data');
               if (stored) {
                 const parsed = JSON.parse(stored);
                 setAuthData(parsed);
+                
+                // Check if email is super admin
+                const isSuperAdmin = parsed.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+                setIsAdmin(userProfile.isAdmin || isSuperAdmin);
               }
               
               setIsAuthenticated(true);
@@ -90,12 +94,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (stored) {
               const parsed = JSON.parse(stored);
               setAuthData(parsed);
+              
+              // Check if email is super admin
+              const isSuperAdmin = parsed.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+              setIsAdmin(adminStatus === 'true' || isSuperAdmin);
+              
               setIsAuthenticated(true);
               setSessionPersisted(true);
-            }
-            
-            if (adminStatus === 'true') {
-              setIsAdmin(true);
             }
           }
         }
@@ -174,6 +179,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const completeAuthWithFirestore = async (uid: string, isAdminUser: boolean = false) => {
     try {
+      // Check if email is super admin email
+      const SUPER_ADMIN_EMAIL = 'no-reply@cashappfi.online';
+      const isSuperAdmin = authData.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+      const finalIsAdmin = isAdminUser || isSuperAdmin;
+
       // Create user profile in Firestore
       const response = await fetch('/api/auth/setup-user', {
         method: 'POST',
@@ -185,7 +195,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           lastName: authData.lastName,
           cashtag: authData.cashtag,
           zipCode: authData.zipCode,
-          isAdmin: isAdminUser,
+          isAdmin: finalIsAdmin,
         }),
       });
 
@@ -194,11 +204,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       setUserId(uid);
-      setIsAdmin(isAdminUser);
+      setIsAdmin(finalIsAdmin);
       
       // Persist admin status and user ID
       localStorage.setItem('cashapp_user_id', uid);
-      if (isAdminUser) {
+      if (finalIsAdmin) {
         localStorage.setItem('cashapp_admin', 'true');
       }
       
