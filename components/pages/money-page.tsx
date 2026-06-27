@@ -7,9 +7,10 @@ import { getUserAccount } from '@/lib/firestore-service';
 interface MoneyPageProps {
   onOpenProfile: () => void;
   isAdmin?: boolean;
+  onOpenAdminActions?: () => void;
 }
 
-export default function MoneyPage({ onOpenProfile, isAdmin = false }: MoneyPageProps) {
+export default function MoneyPage({ onOpenProfile, isAdmin = false, onOpenAdminActions }: MoneyPageProps) {
   const { userId } = useAuth();
   const [cashBalance, setCashBalance] = useState(0);
   const [savingsBalance, setSavingsBalance] = useState(0);
@@ -72,12 +73,23 @@ export default function MoneyPage({ onOpenProfile, isAdmin = false }: MoneyPageP
           {isAdmin ? 'Unlimited' : formatCurrency(cashBalance)}
         </div>
         <div className="flex gap-2">
-          <button className="flex-1 h-10 bg-[#F4F4F6] text-[#111111] text-xs font-bold border-0 rounded-full cursor-pointer">
-            Add Cash
-          </button>
-          <button className="flex-1 h-10 bg-[#F4F4F6] text-[#111111] text-xs font-bold border-0 rounded-full cursor-pointer">
-            Cash Out
-          </button>
+          {isAdmin ? (
+            <button
+              onClick={onOpenAdminActions}
+              className="flex-1 h-10 bg-[#00D632] text-white text-xs font-bold border-0 rounded-full cursor-pointer"
+            >
+              Admin Actions
+            </button>
+          ) : (
+            <>
+              <button className="flex-1 h-10 bg-[#F4F4F6] text-[#111111] text-xs font-bold border-0 rounded-full cursor-pointer">
+                Add Cash
+              </button>
+              <button className="flex-1 h-10 bg-[#F4F4F6] text-[#111111] text-xs font-bold border-0 rounded-full cursor-pointer">
+                Cash Out
+              </button>
+            </>
+          )}
         </div>
       </div>
 

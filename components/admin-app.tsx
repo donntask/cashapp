@@ -6,6 +6,7 @@ import PayPadPage from './pages/paypad-page';
 import ActivityPage from './pages/activity-page';
 import ProfileOverlay from './overlays/profile-overlay';
 import SettingsOverlay from './overlays/settings-overlay';
+import AdminActionsOverlay from './overlays/admin-actions-overlay';
 import PaymentFlow from './overlays/payment-flow';
 import BottomNavbar from './bottom-navbar';
 import AuthFlow from './auth/auth-flow';
@@ -17,6 +18,7 @@ export default function AdminApp() {
   const [activeTab, setActiveTab] = useState<'money' | 'paypad' | 'activity'>('money');
   const [showProfile, setShowProfile] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showAdminActions, setShowAdminActions] = useState(false);
   const [showPaymentFlow, setShowPaymentFlow] = useState(false);
   const [paymentFlowStep, setPaymentFlowStep] = useState<'recipient' | 'pin' | 'status'>('recipient');
   const [padAmount, setPadAmount] = useState('0');
@@ -83,7 +85,7 @@ export default function AdminApp() {
   }
 
   // Hide navbar when PayPad page is active, payment flow is open, or profile is open
-  const shouldHideNavbar = activeTab === 'paypad' || showPaymentFlow || showProfile || showSettings;
+  const shouldHideNavbar = activeTab === 'paypad' || showPaymentFlow || showProfile || showSettings || showAdminActions;
   
   return (
     <div className="relative w-full h-screen bg-[#F4F4F6] flex flex-col shadow-2xl overflow-hidden select-none" style={{ WebkitUserSelect: 'none', userSelect: 'none' }}>
@@ -95,7 +97,13 @@ export default function AdminApp() {
 
       {/* Page Views - Account for fixed navbar height at bottom when navbar is visible */}
       <div className={`flex-1 overflow-y-auto ${!shouldHideNavbar ? 'pb-[70px]' : ''}`}>
-        {activeTab === 'money' && <MoneyPage onOpenProfile={() => setShowProfile(true)} isAdmin={isAdmin} />}
+        {activeTab === 'money' && (
+          <MoneyPage 
+            onOpenProfile={() => setShowProfile(true)} 
+            isAdmin={isAdmin}
+            onOpenAdminActions={() => setShowAdminActions(true)}
+          />
+        )}
         {activeTab === 'paypad' && (
           <PayPadPage
             amount={padAmount}
@@ -126,6 +134,9 @@ export default function AdminApp() {
         />
       )}
       {showSettings && <SettingsOverlay isOpen={showSettings} onClose={() => setShowSettings(false)} />}
+      {showAdminActions && (
+        <AdminActionsOverlay isOpen={showAdminActions} onClose={() => setShowAdminActions(false)} />
+      )}
       {showPaymentFlow && (
         <PaymentFlow
           step={paymentFlowStep}
