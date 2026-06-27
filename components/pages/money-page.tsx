@@ -16,29 +16,46 @@ export default function MoneyPage({ onOpenProfile, isAdmin = false, onOpenAdminA
   const [savingsBalance, setSavingsBalance] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    const loadBalances = async () => {
-      try {
-        if (isAdmin) {
-          // Admin has unlimited balance
-          setCashBalance(999999999);
-          setSavingsBalance(999999999);
-          setIsLoading(false);
-        } else if (userId) {
-          const account = await getUserAccount(userId);
-          if (account) {
-            setCashBalance(account.cashBalance || 0);
-            setSavingsBalance(account.savingsBalance || 0);
-          }
-          setIsLoading(false);
+  const loadBalances = async () => {
+    try {
+      if (isAdmin) {
+        setCashBalance(999999999);
+        setSavingsBalance(999999999);
+        setIsLoading(false);
+      } else if (userId) {
+        const account = await getUserAccount(userId);
+        if (account) {
+          setCashBalance(account.cashBalance || 0);
+          setSavingsBalance(account.savingsBalance || 0);
+        } else {
+          // Fallback to localStorage
+          try {
+            const appData = localStorage.getItem('cashapp_app_data');
+            if (appData) {
+              const data = JSON.parse(appData);
+              setCashBalance(data.cashBalance || 0);
+              setSavingsBalance(data.savingsBalance || 0);
+            }
+          } catch {}
         }
-      } catch (error) {
-        console.error('[v0] Failed to load account data:', error);
+        setIsLoading(false);
+      } else {
         setIsLoading(false);
       }
-    };
+    } catch (error) {
+      console.error('[v0] Failed to load account data:', error);
+      setIsLoading(false);
+    }
+  };
 
+  useEffect(() => {
     loadBalances();
+
+    // Reload balances when window regains focus (e.g., after payment)
+    const handleFocus = () => loadBalances();
+    window.addEventListener('focus', handleFocus);
+    return () => window.removeEventListener('focus', handleFocus);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, isAdmin]);
 
   const formatCurrency = (amount: number) => {

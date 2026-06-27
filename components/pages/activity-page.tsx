@@ -33,7 +33,23 @@ export default function ActivityPage({ onOpenProfile, isAdmin = false }: Activit
       try {
         if (userId) {
           const txs = await getUserTransactions(userId);
-          setTransactions(txs as Transaction[]);
+          if (txs.length > 0) {
+            setTransactions(txs as Transaction[]);
+          } else {
+            // Fallback to localStorage if Firestore has nothing yet
+            try {
+              const appData = localStorage.getItem('cashapp_app_data');
+              if (appData) {
+                const data = JSON.parse(appData);
+                const localTxs = (data.transactions || []).map((tx: any) => ({
+                  ...tx,
+                  id: tx.id || `local_${Date.now()}`,
+                  status: tx.status || 'completed',
+                }));
+                setTransactions(localTxs);
+              }
+            } catch {}
+          }
         }
       } catch (error) {
         console.error('[v0] Failed to load transactions:', error);

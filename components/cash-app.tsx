@@ -114,6 +114,7 @@ export default function CashApp() {
             onInitiatePayment={handleInitiatePayment}
             onNavigateToMoney={() => setActiveTab('money')}
             onNavigateToActivity={() => setActiveTab('activity')}
+            isAdmin={isAdmin}
           />
         )}
         {activeTab === 'activity' && <ActivityPage onOpenProfile={() => setShowProfile(true)} />}

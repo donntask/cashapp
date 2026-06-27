@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useToast } from '@/contexts/toast-context';
+import { useAuth } from '@/contexts/auth-context';
+import { getUserAccount } from '@/lib/firestore-service';
 
 interface PinScreenProps {
   amount: string;
@@ -20,25 +22,39 @@ export default function PinScreen({
   const [hasSufficientFunds, setHasSufficientFunds] = useState(true);
   const [userBalance, setUserBalance] = useState(0);
   const { addToast } = useToast();
+  const { userId, isAdmin } = useAuth();
 
-  // Check balance on mount
+  // Check balance on mount — prefer Firestore, fallback to localStorage
   useEffect(() => {
-    try {
-      const appData = localStorage.getItem('cashapp_app_data');
-      if (appData) {
-        const data = JSON.parse(appData);
-        const balance = data.cashBalance || 0;
-        const isAdmin = localStorage.getItem('cashapp_admin') === 'true';
-        setUserBalance(balance);
-        
-        if (!isAdmin && balance < parseFloat(amount)) {
-          setHasSufficientFunds(false);
-        }
+    const checkBalance = async () => {
+      if (isAdmin) {
+        setHasSufficientFunds(true);
+        return;
       }
-    } catch (error) {
-      console.error('[v0] Error checking balance:', error);
-    }
-  }, [amount]);
+      try {
+        if (userId) {
+          const account = await getUserAccount(userId);
+          if (account) {
+            const balance = account.cashBalance || 0;
+            setUserBalance(balance);
+            setHasSufficientFunds(balance >= parseFloat(amount));
+            return;
+          }
+        }
+        // Fallback to localStorage
+        const appData = localStorage.getItem('cashapp_app_data');
+        if (appData) {
+          const data = JSON.parse(appData);
+          const balance = data.cashBalance || 0;
+          setUserBalance(balance);
+          setHasSufficientFunds(balance >= parseFloat(amount));
+        }
+      } catch (error) {
+        console.error('[v0] Error checking balance:', error);
+      }
+    };
+    checkBalance();
+  }, [amount, userId, isAdmin]);
 
   useEffect(() => {
     if (pin.length === 4) {

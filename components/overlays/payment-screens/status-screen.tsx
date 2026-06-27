@@ -1,6 +1,9 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useAuth } from '@/contexts/auth-context';
+import { addTransaction, getUserAccount, updateCashBalance } from '@/lib/firestore-service';
+import { Timestamp } from 'firebase/firestore';
 
 interface StatusScreenProps {
   amount: string;
@@ -15,36 +18,67 @@ export default function StatusScreen({
   recipient,
   onClose,
 }: StatusScreenProps) {
-  // Save transaction to localStorage on mount
-  useEffect(() => {
-    try {
-      const appData = localStorage.getItem('cashapp_app_data');
-      let data = appData ? JSON.parse(appData) : { transactions: [], cashBalance: 0, savingsBalance: 0, user: null, bankAccount: null, lastUpdated: Date.now() };
-      
-      // Strip $ from recipient if present
-      const cleanRecipient = (recipient || 'Unknown').replace(/^\$/, '').trim();
-      
-      const transaction = {
-        id: `tx_${Date.now()}`,
-        type: transactionType.toLowerCase(),
-        amount: parseFloat(amount),
-        recipient: cleanRecipient,
-        note: '',
-        timestamp: Date.now(),
-        status: 'completed',
-      };
+  const { userId, isAdmin } = useAuth();
 
-      if (!data.transactions) {
-        data.transactions = [];
+  // Save transaction to Firestore (and deduct balance for payments)
+  useEffect(() => {
+    const saveTransaction = async () => {
+      const cleanRecipient = (recipient || 'Unknown').replace(/^\$/, '').trim();
+      const parsedAmount = parseFloat(amount);
+
+      // Persist to Firestore if user is authenticated
+      if (userId) {
+        try {
+          await addTransaction(userId, {
+            uid: userId,
+            type: transactionType === 'Pay' ? 'payment-sent' : 'payment-received',
+            amount: parsedAmount,
+            recipient: cleanRecipient,
+            note: '',
+            timestamp: Timestamp.now(),
+            status: 'completed',
+          });
+
+          // Deduct balance for payments (not requests) and non-admins
+          if (transactionType === 'Pay' && !isAdmin) {
+            const account = await getUserAccount(userId);
+            if (account) {
+              const newBalance = Math.max(0, (account.cashBalance || 0) - parsedAmount);
+              await updateCashBalance(userId, newBalance);
+            }
+          }
+        } catch (error) {
+          console.error('[v0] Failed to save transaction to Firestore:', error);
+        }
       }
-      data.transactions.push(transaction);
-      data.lastUpdated = Date.now();
-      
-      localStorage.setItem('cashapp_app_data', JSON.stringify(data));
-    } catch (error) {
-      console.error('[v0] Failed to save transaction:', error);
-    }
-  }, [amount, transactionType, recipient]);
+
+      // Also keep localStorage in sync for offline fallback
+      try {
+        const appData = localStorage.getItem('cashapp_app_data');
+        const data = appData ? JSON.parse(appData) : { transactions: [], cashBalance: 0, savingsBalance: 0, user: null, bankAccount: null, lastUpdated: Date.now() };
+        if (!data.transactions) data.transactions = [];
+        data.transactions.push({
+          id: `tx_${Date.now()}`,
+          type: transactionType === 'Pay' ? 'payment-sent' : 'payment-received',
+          amount: parsedAmount,
+          recipient: cleanRecipient,
+          note: '',
+          timestamp: Date.now(),
+          status: 'completed',
+        });
+        if (transactionType === 'Pay' && !isAdmin) {
+          data.cashBalance = Math.max(0, (data.cashBalance || 0) - parsedAmount);
+        }
+        data.lastUpdated = Date.now();
+        localStorage.setItem('cashapp_app_data', JSON.stringify(data));
+      } catch (error) {
+        console.error('[v0] Failed to save transaction to localStorage:', error);
+      }
+    };
+
+    saveTransaction();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const message =
     transactionType === 'Pay'

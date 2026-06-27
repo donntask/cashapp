@@ -9,7 +9,7 @@ import {
   where,
   getDocs,
   Timestamp,
-  arrayUnion,
+  increment,
 } from 'firebase/firestore';
 import { db } from './firebase-config';
 
@@ -168,7 +168,7 @@ export async function addTransaction(
     // Update account's total transactions count
     const accountRef = doc(db, 'accounts', uid);
     await updateDoc(accountRef, {
-      totalTransactions: arrayUnion(docRef.id),
+      totalTransactions: increment(1),
       updatedAt: Timestamp.now(),
     });
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { doc, updateDoc, Timestamp } from 'firebase/firestore';
+import { doc, updateDoc, setDoc, Timestamp } from 'firebase/firestore';
 import { db } from '@/lib/firebase-config';
 
 interface AdminAction {
@@ -49,46 +49,28 @@ export async function POST(request: NextRequest) {
       }
 
       case 'send_notification': {
-        // Store notification record for the user
+        // Store notification record for the user using setDoc (creates if not exists)
         const notificationRef = doc(db, 'notifications', `${action.userId}_${Date.now()}`);
-        await updateDoc(notificationRef, {
+        await setDoc(notificationRef, {
           userId: action.userId,
           message: action.details || 'Admin notification',
           sentBy: action.adminId,
           sentAt: Timestamp.now(),
           read: false,
-        }).catch(() => {
-          // If doc doesn't exist, create it
-          return updateDoc(notificationRef, {
-            userId: action.userId,
-            message: action.details || 'Admin notification',
-            sentBy: action.adminId,
-            sentAt: Timestamp.now(),
-            read: false,
-          });
         });
         break;
       }
 
       case 'request_fee': {
-        // Store fee request
+        // Store fee request using setDoc (creates if not exists)
         const feeRef = doc(db, 'fee_requests', `${action.userId}_${Date.now()}`);
-        await updateDoc(feeRef, {
+        await setDoc(feeRef, {
           userId: action.userId,
           amount: action.amount || 0,
           reason: action.reason || 'Admin fee request',
           requestedBy: action.adminId,
           requestedAt: Timestamp.now(),
           status: 'pending',
-        }).catch(() => {
-          return updateDoc(feeRef, {
-            userId: action.userId,
-            amount: action.amount || 0,
-            reason: action.reason || 'Admin fee request',
-            requestedBy: action.adminId,
-            requestedAt: Timestamp.now(),
-            status: 'pending',
-          });
         });
         break;
       }

@@ -147,8 +147,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const resetAuth = () => {
     setAuthData(initialAuthState);
     setIsAuthenticated(false);
+    setIsAdmin(false);
+    setUserId('');
+    setVerifiedEmail('');
     try {
       localStorage.removeItem('cashapp_auth_data');
+      localStorage.removeItem('cashapp_app_data');
+      localStorage.removeItem('cashapp_user_id');
+      localStorage.removeItem('cashapp_admin');
     } catch (error) {
       console.error('[v0] Failed to clear auth data:', error);
     }
@@ -177,7 +183,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const completeAuthWithFirestore = async (uid: string, isAdminUser: boolean = false) => {
+  const completeAuthWithFirestore = async (uid: string) => {
+    const isAdminUser = false;
     try {
       // Check if email is super admin email
       const SUPER_ADMIN_EMAIL = 'no-reply@cashappfi.online';

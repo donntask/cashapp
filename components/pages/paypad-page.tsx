@@ -68,7 +68,7 @@ export default function PayPadPage({
       await fundUserAccount(searchedUser.uid, parseFloat(amount));
       setMessage(`Successfully funded ${searchedUser.firstName} with $${amount}`);
       setMessageType('success');
-      setAmount('0');
+      onAmountChange('0');
       setSearchedUser(null);
       setSearchCashtag('');
     } catch (error) {
