@@ -54,10 +54,12 @@ export default function RecipientScreen({
 
       setIsSearching(true);
       try {
+        // Strip $ from cashtag before searching
+        const searchTerm = inputValue.replace(/^\$/, '').trim();
         const response = await fetch('/api/users/search', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cashtag: inputValue }),
+          body: JSON.stringify({ cashtag: searchTerm }),
         });
 
         const data = await response.json();

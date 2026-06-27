@@ -112,8 +112,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const handleHashChange = () => {
       if (window.location.hash === '#dev') {
         setIsAuthenticated(true);
+        setIsAdmin(true); // Enable admin mode in dev
       }
-    };
+    }
+    
+    // Check initial hash on mount
+    if (window.location.hash === '#dev') {
+      setIsAuthenticated(true);
+      setIsAdmin(true);
+    }
+    
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);

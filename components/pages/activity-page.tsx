@@ -161,33 +161,17 @@ export default function ActivityPage({ onOpenProfile, isAdmin = false }: Activit
         </div>
       </div>
 
-      {/* Horizontal Avatar Row */}
-      <div className="flex gap-4 px-4 py-4 overflow-x-auto">
-        <div className="flex flex-col items-center gap-1.5 font-semibold text-xs min-w-[55px]">
-          <div className="w-10 h-10 rounded-full bg-[#00D632] flex items-center justify-center text-white text-lg">
-            +
+      {/* Quick Actions - Empty when no transactions */}
+      {completedTxs.length === 0 && pendingTxs.length === 0 && (
+        <div className="flex gap-4 px-4 py-4 overflow-x-auto">
+          <div className="flex flex-col items-center gap-1.5 font-semibold text-xs min-w-[55px]">
+            <div className="w-10 h-10 rounded-full bg-[#00D632] flex items-center justify-center text-white text-lg">
+              +
+            </div>
+            <div className="text-[#111111] font-semibold text-center">Get $20</div>
           </div>
-          <div className="text-[#111111] font-semibold text-center">Get $20</div>
         </div>
-        <div className="flex flex-col items-center gap-1.5 font-semibold text-xs min-w-[55px]">
-          <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold">
-            B
-          </div>
-          <div>Business</div>
-        </div>
-        <div className="flex flex-col items-center gap-1.5 font-semibold text-xs min-w-[55px]">
-          <div className="w-10 h-10 rounded-full bg-red-500 flex items-center justify-center text-white font-bold">
-            C
-          </div>
-          <div>Christina</div>
-        </div>
-        <div className="flex flex-col items-center gap-1.5 font-semibold text-xs min-w-[55px]">
-          <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white font-bold">
-            D
-          </div>
-          <div>Destiny</div>
-        </div>
-      </div>
+      )}
 
       {/* Transaction Sections */}
       <div className="flex-1 overflow-y-auto">

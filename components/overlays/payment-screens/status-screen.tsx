@@ -21,11 +21,14 @@ export default function StatusScreen({
       const appData = localStorage.getItem('cashapp_app_data');
       let data = appData ? JSON.parse(appData) : { transactions: [], cashBalance: 0, savingsBalance: 0, user: null, bankAccount: null, lastUpdated: Date.now() };
       
+      // Strip $ from recipient if present
+      const cleanRecipient = (recipient || 'Unknown').replace(/^\$/, '').trim();
+      
       const transaction = {
         id: `tx_${Date.now()}`,
         type: transactionType.toLowerCase(),
         amount: parseFloat(amount),
-        recipient: recipient || 'Unknown',
+        recipient: cleanRecipient,
         note: '',
         timestamp: Date.now(),
         status: 'completed',
