@@ -1,6 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/contexts/toast-context';
 
 interface AdminActionsOverlayProps {
   onClose: () => void;
@@ -13,17 +15,42 @@ interface User {
   lastName: string;
   cashtag: string;
   email: string;
+  isAdmin?: boolean;
 }
 
 export default function AdminActionsOverlay({ onClose, isOpen }: AdminActionsOverlayProps) {
+  const { verifiedEmail } = useAuth();
+  const { addToast } = useToast();
+  
   const [searchCashtag, setSearchCashtag] = useState('');
   const [searchResults, setSearchResults] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [action, setAction] = useState<'block_account' | 'block_transaction' | 'send_notification' | 'request_fee' | null>(null);
+  const [action, setAction] = useState<'block_account' | 'block_transaction' | 'send_notification' | 'request_fee' | 'make_admin' | 'remove_admin' | null>(null);
   const [reason, setReason] = useState('');
   const [amount, setAmount] = useState('');
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false);
+
+  // Check if current user is super admin
+  useEffect(() => {
+    const checkSuperAdmin = async () => {
+      if (!verifiedEmail) return;
+      try {
+        const response = await fetch('/api/admin/super-admin', {
+          method: 'GET',
+          headers: { 'x-user-email': verifiedEmail },
+        });
+        const data = await response.json();
+        setIsSuperAdmin(data.isSuperAdmin || false);
+      } catch (error) {
+        console.error('[v0] Failed to check super admin status:', error);
+        setIsSuperAdmin(false);
+      }
+    };
+    
+    checkSuperAdmin();
+  }, [verifiedEmail]);
 
   const handleSearch = async () => {
     if (!searchCashtag.trim()) return;
@@ -53,31 +80,65 @@ export default function AdminActionsOverlay({ onClose, isOpen }: AdminActionsOve
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/admin/actions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: action,
-          userId: selectedUser.uid,
-          adminId: 'current_admin', // This should come from auth context
-          reason,
-          amount: action === 'request_fee' ? parseFloat(amount) : undefined,
-          details: message,
-        }),
-      });
+      // Handle admin management actions
+      if (action === 'make_admin' || action === 'remove_admin') {
+        if (!isSuperAdmin) {
+          addToast('Only the super admin can manage admin roles', 'error');
+          setIsLoading(false);
+          return;
+        }
 
-      const data = await response.json();
-      if (data.success) {
-        alert(`Action completed: ${action}`);
-        setSelectedUser(null);
-        setAction(null);
-        setReason('');
-        setAmount('');
-        setMessage('');
+        const response = await fetch('/api/admin/super-admin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            adminEmail: verifiedEmail,
+            targetUserId: selectedUser.uid,
+            action: action === 'make_admin' ? 'make_admin' : 'remove_admin',
+          }),
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          addToast(data.message, 'success');
+          setSelectedUser(null);
+          setAction(null);
+          setReason('');
+          setAmount('');
+          setMessage('');
+        } else {
+          addToast(data.error || 'Action failed', 'error');
+        }
+      } else {
+        // Handle other admin actions
+        const response = await fetch('/api/admin/actions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: action,
+            userId: selectedUser.uid,
+            adminId: 'current_admin',
+            reason,
+            amount: action === 'request_fee' ? parseFloat(amount) : undefined,
+            details: message,
+          }),
+        });
+
+        const data = await response.json();
+        if (data.success) {
+          addToast(`Action completed: ${action}`, 'success');
+          setSelectedUser(null);
+          setAction(null);
+          setReason('');
+          setAmount('');
+          setMessage('');
+        } else {
+          addToast(data.error || 'Failed to execute action', 'error');
+        }
       }
     } catch (error) {
       console.error('[v0] Action error:', error);
-      alert('Failed to execute action');
+      addToast('Failed to execute action', 'error');
     } finally {
       setIsLoading(false);
     }
@@ -176,7 +237,29 @@ export default function AdminActionsOverlay({ onClose, isOpen }: AdminActionsOve
                     >
                       Request Fee
                     </button>
+                    
+                    {/* Admin management buttons - only for super admin */}
+                    {isSuperAdmin && (
+                      <>
+                        <button
+                          onClick={() => setAction('make_admin')}
+                          className="p-3 border border-[#E5E7EB] rounded-lg hover:bg-purple-50 text-sm font-semibold text-[#111111] cursor-pointer"
+                        >
+                          Make Admin
+                        </button>
+                        <button
+                          onClick={() => setAction('remove_admin')}
+                          className="p-3 border border-[#E5E7EB] rounded-lg hover:bg-purple-50 text-sm font-semibold text-[#111111] cursor-pointer"
+                        >
+                          Remove Admin
+                        </button>
+                      </>
+                    )}
                   </div>
+                  
+                  {isSuperAdmin && (
+                    <div className="text-xs text-[#00D632] font-semibold">Super Admin Mode - You can manage admin roles</div>
+                  )}
                 </div>
               ) : (
                 <>

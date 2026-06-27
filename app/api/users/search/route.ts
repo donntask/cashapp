@@ -17,49 +17,58 @@ export async function POST(request: NextRequest) {
     const usersRef = collection(db, 'users');
     const searchTerm = cashtag.toLowerCase().replace(/^\$/, '').trim(); // Remove $ if present and lowercase
     
-    // Try exact match first
-    let querySnapshot = await getDocs(
-      query(
+    let users: any[] = [];
+    
+    // Try exact match first (case-insensitive comparison in Firebase)
+    try {
+      const exactQuery = query(
         usersRef,
         where('cashtag', '==', searchTerm),
         limit(5)
-      )
-    );
-    
-    // If no exact match, try contains (for partial matching)
-    if (querySnapshot.empty) {
-      // Get all users and filter client-side for partial match
-      querySnapshot = await getDocs(
-        query(usersRef, limit(100))
       );
+      const exactSnapshot = await getDocs(exactQuery);
       
-      querySnapshot = await getDocs(
-        query(
-          usersRef,
-          where('cashtag', '>=', searchTerm),
-          where('cashtag', '<=', searchTerm + '\uf8ff'),
-          limit(5)
-        )
-      ).catch(() => {
-        // Fallback: just get users and filter
-        return querySnapshot;
-      });
+      if (!exactSnapshot.empty) {
+        users = exactSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            uid: doc.id,
+            firstName: data.firstName,
+            lastName: data.lastName,
+            cashtag: data.cashtag,
+            email: data.email,
+            isAdmin: data.isAdmin || false,
+          };
+        });
+      }
+    } catch (e) {
+      // Try partial match if exact match fails
     }
     
-    const users = querySnapshot.docs
-      .map(doc => {
-        const data = doc.data();
-        return {
-          uid: doc.id,
-          firstName: data.firstName,
-          lastName: data.lastName,
-          cashtag: data.cashtag,
-          email: data.email,
-          isAdmin: data.isAdmin || false,
-        };
-      })
-      .filter(user => user.cashtag.toLowerCase().includes(searchTerm))
-      .slice(0, 5);
+    // If no exact match, get all users and filter client-side for partial match
+    if (users.length === 0) {
+      try {
+        const allUsersQuery = query(usersRef, limit(100));
+        const allUsersSnapshot = await getDocs(allUsersQuery);
+        
+        users = allUsersSnapshot.docs
+          .map(doc => {
+            const data = doc.data();
+            return {
+              uid: doc.id,
+              firstName: data.firstName,
+              lastName: data.lastName,
+              cashtag: data.cashtag || '',
+              email: data.email,
+              isAdmin: data.isAdmin || false,
+            };
+          })
+          .filter(user => user.cashtag && user.cashtag.toLowerCase().includes(searchTerm))
+          .slice(0, 5);
+      } catch (e) {
+        console.error('[v0] Search failed:', e);
+      }
+    }
 
     return NextResponse.json({
       success: true,
