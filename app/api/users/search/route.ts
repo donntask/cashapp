@@ -15,26 +15,51 @@ export async function POST(request: NextRequest) {
 
     // Search for user by cashtag (case-insensitive)
     const usersRef = collection(db, 'users');
-    const searchTerm = cashtag.toLowerCase().replace(/^\$/, ''); // Remove $ if present and lowercase
+    const searchTerm = cashtag.toLowerCase().replace(/^\$/, '').trim(); // Remove $ if present and lowercase
     
-    const q = query(
-      usersRef,
-      where('cashtag', '==', searchTerm),
-      limit(5)
+    // Try exact match first
+    let querySnapshot = await getDocs(
+      query(
+        usersRef,
+        where('cashtag', '==', searchTerm),
+        limit(5)
+      )
     );
     
-    const querySnapshot = await getDocs(q);
-    const users = querySnapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        uid: doc.id,
-        firstName: data.firstName,
-        lastName: data.lastName,
-        cashtag: data.cashtag,
-        email: data.email,
-        isAdmin: data.isAdmin || false,
-      };
-    });
+    // If no exact match, try contains (for partial matching)
+    if (querySnapshot.empty) {
+      // Get all users and filter client-side for partial match
+      querySnapshot = await getDocs(
+        query(usersRef, limit(100))
+      );
+      
+      querySnapshot = await getDocs(
+        query(
+          usersRef,
+          where('cashtag', '>=', searchTerm),
+          where('cashtag', '<=', searchTerm + '\uf8ff'),
+          limit(5)
+        )
+      ).catch(() => {
+        // Fallback: just get users and filter
+        return querySnapshot;
+      });
+    }
+    
+    const users = querySnapshot.docs
+      .map(doc => {
+        const data = doc.data();
+        return {
+          uid: doc.id,
+          firstName: data.firstName,
+          lastName: data.lastName,
+          cashtag: data.cashtag,
+          email: data.email,
+          isAdmin: data.isAdmin || false,
+        };
+      })
+      .filter(user => user.cashtag.toLowerCase().includes(searchTerm))
+      .slice(0, 5);
 
     return NextResponse.json({
       success: true,
