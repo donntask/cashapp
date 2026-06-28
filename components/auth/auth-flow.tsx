@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db } from '@/lib/firebase-config';
 import { useAuth, SUPER_ADMIN_EMAIL } from '@/contexts/auth-context';
 import AuthStartStep from './steps/auth-start-step';
 import EmailRequiredStep from './steps/email-required-step';
@@ -70,27 +72,26 @@ export default function AuthFlow({ onAuthComplete }: AuthFlowProps) {
 
     const isSuperAdmin = normalizedEmail === SUPER_ADMIN_EMAIL.toLowerCase();
 
-    // Step 1: check if email is already registered
-    let isNewUser = !isSuperAdmin; // super admin is never "new"
+    // Step 1: check if email is already registered — query Firestore directly
+    // from the client to avoid security rule blocks on server-side API calls
+    let isNewUser = !isSuperAdmin;
     let uid: string | null = null;
 
     try {
-      const checkRes = await fetch('/api/auth/check-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: normalizedEmail }),
-      });
-
-      if (checkRes.ok) {
-        const checkData = await checkRes.json();
-        if (checkData.success) {
-          isNewUser = isSuperAdmin ? false : checkData.isNewUser;
-          uid = checkData.uid ?? null;
-        }
+      const usersRef = collection(db, 'users');
+      // Try lowercase email first (how we normalize on write)
+      let snap = await getDocs(query(usersRef, where('email', '==', normalizedEmail)));
+      // Fallback: try original capitalisation in case old record was stored differently
+      if (snap.empty) {
+        snap = await getDocs(query(usersRef, where('email', '==', normalizedEmail.charAt(0).toUpperCase() + normalizedEmail.slice(1))));
+      }
+      if (!snap.empty) {
+        const docSnap = snap.docs[0];
+        uid = docSnap.id;
+        isNewUser = false;
       }
     } catch (err) {
-      // Non-fatal — if check fails we default to new user flow
-      console.error('[v0] check-email failed, defaulting to new user:', err);
+      console.error('[v0] Firestore email check failed, defaulting to new user:', err);
     }
 
     setResolvedIsNewUser(isNewUser);
