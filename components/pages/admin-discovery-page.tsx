@@ -124,13 +124,15 @@ export default function AdminDiscoveryPage({ onOpenProfile }: AdminDiscoveryPage
     if (!emailPrompt.trim() || !selectedUser) return;
     setIsGenerating(true);
     try {
+      const recipientName = [selectedUser.firstName, selectedUser.lastName].filter(Boolean).join(' ') || selectedUser.cashtag || 'User';
+      console.log('[v0] generate-email sending — prompt:', emailPrompt, '| recipientName:', recipientName, '| email:', selectedUser.email);
       const res = await fetch('/api/admin/generate-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           prompt: emailPrompt,
-          recipientName: `${selectedUser.firstName} ${selectedUser.lastName}`.trim(),
-          recipientEmail: selectedUser.email,
+          recipientName,
+          recipientEmail: selectedUser.email || '',
         }),
       });
       const data = await res.json();
@@ -153,12 +155,13 @@ export default function AdminDiscoveryPage({ onOpenProfile }: AdminDiscoveryPage
     if (!selectedUser || !emailBody.trim()) return;
     setIsSendingEmail(true);
     try {
+      const recipientName = [selectedUser.firstName, selectedUser.lastName].filter(Boolean).join(' ') || selectedUser.cashtag || 'User';
       const res = await fetch('/api/admin/send-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          recipientEmail: selectedUser.email,
-          recipientName: `${selectedUser.firstName} ${selectedUser.lastName}`.trim(),
+          recipientEmail: selectedUser.email || '',
+          recipientName,
           subject: emailSubject || 'Important Notice from Cash App',
           emailBody,
         }),
