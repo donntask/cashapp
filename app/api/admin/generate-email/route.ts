@@ -51,7 +51,10 @@ Write the email body now:`;
     if (!response.ok) {
       const errText = await response.text();
       console.error('[v0] OpenRouter error:', response.status, errText);
-      return NextResponse.json({ error: `OpenRouter error: ${response.status}` }, { status: 500 });
+      // Surface the raw OpenRouter message so the admin UI can show it
+      let detail = errText;
+      try { detail = JSON.parse(errText)?.error?.message ?? errText; } catch {}
+      return NextResponse.json({ error: `OpenRouter error: ${response.status} — ${detail}` }, { status: 500 });
     }
 
     const data = await response.json();
