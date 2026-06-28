@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/contexts/toast-context';
-import { addTransaction, getUserAccount, updateCashBalance } from '@/lib/firestore-service';
+import { addTransaction, getUserAccount, updateCashBalance, searchUserByCashtag } from '@/lib/firestore-service';
 import { Timestamp } from 'firebase/firestore';
 
 interface StatusScreenProps {
@@ -43,12 +43,39 @@ export default function StatusScreen({
             status: 'completed',
           });
 
-          // Deduct balance for payments (not requests) and non-admins
-          if (transactionType === 'Pay' && !isAdmin) {
-            const account = await getUserAccount(userId);
-            if (account) {
-              const newBalance = Math.max(0, (account.cashBalance || 0) - parsedAmount);
-              await updateCashBalance(userId, newBalance);
+          // Deduct sender balance and credit receiver for Pay transactions
+          if (transactionType === 'Pay') {
+            // Debit sender (skip for admin — unlimited balance)
+            if (!isAdmin) {
+              const senderAccount = await getUserAccount(userId);
+              if (senderAccount) {
+                const newBalance = Math.max(0, (senderAccount.cashBalance || 0) - parsedAmount);
+                await updateCashBalance(userId, newBalance);
+              }
+            }
+
+            // Credit receiver in real-time by looking up their cashtag
+            try {
+              const recipientUser = await searchUserByCashtag(cleanRecipient);
+              if (recipientUser && recipientUser.uid && recipientUser.uid !== userId) {
+                const recipientAccount = await getUserAccount(recipientUser.uid);
+                const currentBalance = recipientAccount?.cashBalance || 0;
+                await updateCashBalance(recipientUser.uid, currentBalance + parsedAmount);
+
+                // Add incoming transaction record on recipient side
+                await addTransaction(recipientUser.uid, {
+                  uid: recipientUser.uid,
+                  type: 'payment-received',
+                  amount: parsedAmount,
+                  recipient: cleanRecipient,
+                  note,
+                  timestamp: Timestamp.now(),
+                  status: 'completed',
+                });
+              }
+            } catch (err) {
+              // Non-fatal — sender debit succeeded; log but don't block UI
+              console.error('[v0] Failed to credit recipient:', err);
             }
           }
 

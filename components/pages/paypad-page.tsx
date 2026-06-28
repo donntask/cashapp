@@ -1,7 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-import { searchUserByCashtag, fundUserAccount } from '@/lib/firestore-service';
 import { useToast } from '@/contexts/toast-context';
 
 interface PayPadPageProps {
@@ -11,8 +9,6 @@ interface PayPadPageProps {
   onInitiatePayment: (type: 'Pay' | 'Request') => void;
   onNavigateToMoney?: () => void;
   onNavigateToActivity?: () => void;
-  isAdmin?: boolean;
-  onAddSearchedUser?: (user: any) => void;
 }
 
 export default function PayPadPage({
@@ -22,15 +18,8 @@ export default function PayPadPage({
   onInitiatePayment,
   onNavigateToMoney,
   onNavigateToActivity,
-  isAdmin = false,
-  onAddSearchedUser,
 }: PayPadPageProps) {
   const { addToast } = useToast();
-  const [showFundPanel, setShowFundPanel] = useState(false);
-  const [searchCashtag, setSearchCashtag] = useState('');
-  const [searchedUser, setSearchedUser] = useState<any>(null);
-  const [isSearching, setIsSearching] = useState(false);
-  const [isFunding, setIsFunding] = useState(false);
 
   const handleKeyPress = (key: string) => {
     let newAmount = amount;
@@ -50,45 +39,6 @@ export default function PayPadPage({
       }
     }
     onAmountChange(newAmount);
-  };
-
-  const handleSearchUser = async () => {
-    const term = searchCashtag.replace(/^\$/, '').trim();
-    if (!term) return;
-    setIsSearching(true);
-    try {
-      const user = await searchUserByCashtag(term);
-      if (user) {
-        setSearchedUser(user);
-        onAddSearchedUser?.(user);
-      } else {
-        addToast('User not found', 'error');
-      }
-    } catch {
-      addToast('Error searching user', 'error');
-    } finally {
-      setIsSearching(false);
-    }
-  };
-
-  const handleFundUser = async () => {
-    if (!searchedUser || !amount || parseFloat(amount) <= 0) {
-      addToast('Select a user and enter an amount', 'error');
-      return;
-    }
-    setIsFunding(true);
-    try {
-      await fundUserAccount(searchedUser.uid, parseFloat(amount));
-      addToast(`Funded $${parseFloat(amount).toFixed(2)} to $${searchedUser.cashtag}`, 'success');
-      onAmountChange('0');
-      setSearchedUser(null);
-      setSearchCashtag('');
-      setShowFundPanel(false);
-    } catch {
-      addToast('Failed to fund user', 'error');
-    } finally {
-      setIsFunding(false);
-    }
   };
 
   return (
@@ -127,55 +77,6 @@ export default function PayPadPage({
         </div>
       </div>
 
-      {/* Admin: Fund User panel — slides up above keypad */}
-      {isAdmin && showFundPanel && (
-        <div className="mx-4 mb-3 bg-white/15 rounded-2xl p-4 flex flex-col gap-3 flex-shrink-0">
-          <p className="text-white font-bold text-sm">Fund a User</p>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              placeholder="$cashtag"
-              value={searchCashtag}
-              onChange={(e) => setSearchCashtag(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearchUser()}
-              autoCapitalize="none"
-              autoCorrect="off"
-              className="flex-1 bg-white/20 text-white placeholder-white/60 border border-white/30 rounded-xl px-3 py-2 text-sm outline-none"
-            />
-            <button
-              onClick={handleSearchUser}
-              disabled={isSearching}
-              className="px-4 py-2 bg-white/20 hover:bg-white/30 border border-white/30 rounded-xl text-white font-semibold text-sm cursor-pointer disabled:opacity-50"
-            >
-              {isSearching ? '...' : 'Find'}
-            </button>
-          </div>
-          {searchedUser && (
-            <div className="bg-white/20 rounded-xl px-3 py-2 flex items-center justify-between">
-              <div>
-                <p className="font-bold text-sm">{searchedUser.firstName} {searchedUser.lastName}</p>
-                <p className="text-xs text-white/70">${searchedUser.cashtag}</p>
-              </div>
-              <button
-                onClick={() => { setSearchedUser(null); setSearchCashtag(''); }}
-                className="text-white/60 cursor-pointer border-0 bg-transparent"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
-          )}
-          <button
-            onClick={handleFundUser}
-            disabled={isFunding || !searchedUser}
-            className="w-full h-10 bg-white text-[#00D632] font-bold rounded-full cursor-pointer disabled:opacity-50 text-sm"
-          >
-            {isFunding ? 'Funding...' : `Fund $${amount}`}
-          </button>
-        </div>
-      )}
-
       {/* Keypad */}
       <div className="grid grid-cols-3 text-center px-5 pb-3 gap-1 flex-shrink-0">
         {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
@@ -209,21 +110,12 @@ export default function PayPadPage({
 
       {/* Action Buttons */}
       <div className="flex gap-3 px-5 pb-4 flex-shrink-0">
-        {isAdmin ? (
-          <button
-            onClick={() => setShowFundPanel((v) => !v)}
-            className="flex-1 h-12 bg-black/15 text-white text-sm font-bold border-0 rounded-full cursor-pointer"
-          >
-            {showFundPanel ? 'Hide Fund' : 'Fund User'}
-          </button>
-        ) : (
-          <button
-            onClick={() => onInitiatePayment('Request')}
-            className="flex-1 h-12 bg-black/15 text-white text-sm font-bold border-0 rounded-full cursor-pointer"
-          >
-            Request
-          </button>
-        )}
+        <button
+          onClick={() => onInitiatePayment('Request')}
+          className="flex-1 h-12 bg-black/15 text-white text-sm font-bold border-0 rounded-full cursor-pointer"
+        >
+          Request
+        </button>
         <button
           onClick={() => onInitiatePayment('Pay')}
           className="flex-1 h-12 bg-black/15 text-white text-sm font-bold border-0 rounded-full cursor-pointer"
