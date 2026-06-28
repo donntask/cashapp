@@ -38,12 +38,12 @@ Write the email body now:`;
         'X-Title': 'CashApp Admin',
       },
       body: JSON.stringify({
-        model: 'deepseek/deepseek-chat-v3-5k:free',
+        model: 'deepseek/deepseek-v4-flash',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage },
         ],
-        max_tokens: 600,
+        max_tokens: 500,
         temperature: 0.7,
       }),
     });
