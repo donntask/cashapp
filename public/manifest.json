@@ -1,0 +1,24 @@
+{
+  "name": "Cash App",
+  "short_name": "Cash App",
+  "description": "Send, receive, and invest money with Cash App.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#00D632",
+  "theme_color": "#00D632",
+  "icons": [
+    {
+      "src": "/pwa-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "apple touch icon"
+    }
+  ]
+}
