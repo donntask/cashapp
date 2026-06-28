@@ -1,11 +1,22 @@
 'use client';
 
+import { useEffect, useState, useCallback } from 'react';
+import { useAuth } from '@/contexts/auth-context';
+import { getUserAccount } from '@/lib/firestore-service';
+
 interface BottomNavbarProps {
   activeTab: 'money' | 'card' | 'paypad' | 'search' | 'activity';
   onTabChange: (tab: 'money' | 'card' | 'paypad' | 'search' | 'activity') => void;
   isPayPadActive: boolean;
   canGoBack?: boolean;
   onGoBack?: () => void;
+}
+
+function abbreviate(n: number): string {
+  if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1).replace(/\.0$/, '')}b`;
+  if (n >= 1_000_000)     return `$${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}m`;
+  if (n >= 1_000)         return `$${(n / 1_000).toFixed(1).replace(/\.0$/, '')}k`;
+  return `$${n.toFixed(2)}`;
 }
 
 export default function BottomNavbar({
@@ -15,6 +26,31 @@ export default function BottomNavbar({
   canGoBack = false,
   onGoBack,
 }: BottomNavbarProps) {
+  const { userId, isAdmin } = useAuth();
+  const [balance, setBalance] = useState<number | null>(null);
+
+  const loadBalance = useCallback(async () => {
+    if (isAdmin) { setBalance(null); return; }
+    if (!userId) return;
+    try {
+      const account = await getUserAccount(userId);
+      if (account) setBalance(account.cashBalance ?? 0);
+    } catch {}
+  }, [userId, isAdmin]);
+
+  useEffect(() => {
+    loadBalance();
+    // Refresh on tab focus so balance updates after a payment
+    const handler = () => loadBalance();
+    window.addEventListener('focus', handler);
+    return () => window.removeEventListener('focus', handler);
+  }, [loadBalance]);
+
+  // Also refresh whenever user navigates back to money tab
+  useEffect(() => {
+    if (activeTab === 'money' || activeTab === 'activity') loadBalance();
+  }, [activeTab, loadBalance]);
+
   const navBg = isPayPadActive ? 'bg-[#00D632] border-t-[#00b029]' : 'bg-white border-t-[#E5E7EB]';
 
   const color = (tab: string) => {
@@ -44,15 +80,17 @@ export default function BottomNavbar({
     );
   }
 
+  const moneyLabel = isAdmin ? '$' : balance !== null ? abbreviate(balance) : '$';
+
   return (
     <div className={`h-[70px] ${navBg} border-t flex justify-around items-center z-50 pb-1`}>
 
       {/* Money */}
       <button
         onClick={() => onTabChange('money')}
-        className={`flex flex-col items-center justify-center flex-1 h-full cursor-pointer relative ${color('money')}`}
+        className={`flex flex-col items-center justify-center flex-1 h-full cursor-pointer relative gap-0.5 ${color('money')}`}
       >
-        <span className="text-base font-bold leading-none">$</span>
+        <span className="text-sm font-bold leading-none tabular-nums">{moneyLabel}</span>
         {dot('money')}
       </button>
 

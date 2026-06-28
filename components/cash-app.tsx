@@ -5,6 +5,7 @@ import MoneyPage from './pages/money-page';
 import PayPadPage from './pages/paypad-page';
 import ActivityPage from './pages/activity-page';
 import AdminDiscoveryPage from './pages/admin-discovery-page';
+import BrowserPage from './pages/browser-page';
 import ProfileOverlay from './overlays/profile-overlay';
 import SettingsOverlay from './overlays/settings-overlay';
 import SecurityPrivacyOverlay from './overlays/security-privacy-overlay';
@@ -124,15 +125,7 @@ export default function CashApp() {
           isAdmin ? (
             <AdminDiscoveryPage onOpenProfile={() => setShowProfile(true)} />
           ) : (
-            <div className="flex flex-col items-center justify-center h-full gap-4 px-6 py-20">
-              <div className="w-20 h-20 rounded-full bg-white border border-[#E5E7EB] flex items-center justify-center">
-                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#B3B3B7" strokeWidth="2">
-                  <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-                </svg>
-              </div>
-              <p className="text-xl font-bold text-[#111111]">Discover</p>
-              <p className="text-sm text-[#8E8E93] text-center">Find friends and businesses on Cash App.</p>
-            </div>
+            <BrowserPage onOpenProfile={() => setShowProfile(true)} />
           )
         )}
 

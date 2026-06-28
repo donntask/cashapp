@@ -189,16 +189,47 @@ export async function getUserContacts(uid: string): Promise<Contact[]> {
   }
 }
 
-export async function searchUserByCashtag(cashtag: string): Promise<UserProfile & Account | null> {
+export async function searchUserByCashtag(cashtag: string): Promise<(UserProfile & Account) | null> {
   const db = getDb();
   try {
-    const snap = await getDocs(query(collection(db, 'users'), where('cashtag', '==', cashtag)));
-    if (snap.empty) return null;
-    const userDoc = snap.docs[0];
-    const userData = userDoc.data() as UserProfile;
-    const accountSnap = await getDoc(doc(db, 'accounts', userDoc.id));
+    const usersRef = collection(db, 'users');
+    const term = cashtag.replace(/^\$/, '').trim();
+    // Try multiple case variants to handle inconsistent storage
+    const variants = Array.from(new Set([
+      term,
+      term.toLowerCase(),
+      term.toUpperCase(),
+      term.charAt(0).toUpperCase() + term.slice(1).toLowerCase(),
+    ]));
+
+    let foundId: string | null = null;
+    let foundData: UserProfile | null = null;
+
+    for (const v of variants) {
+      const snap = await getDocs(query(usersRef, where('cashtag', '==', v)));
+      if (!snap.empty) {
+        foundId = snap.docs[0].id;
+        foundData = snap.docs[0].data() as UserProfile;
+        break;
+      }
+    }
+
+    // Fallback: prefix range query
+    if (!foundId) {
+      const snap = await getDocs(
+        query(usersRef, where('cashtag', '>=', term.toLowerCase()), where('cashtag', '<=', term.toLowerCase() + '\uf8ff'))
+      );
+      if (!snap.empty) {
+        foundId = snap.docs[0].id;
+        foundData = snap.docs[0].data() as UserProfile;
+      }
+    }
+
+    if (!foundId || !foundData) return null;
+
+    const accountSnap = await getDoc(doc(db, 'accounts', foundId));
     const accountData = accountSnap.exists() ? accountSnap.data() : { cashBalance: 0, savingsBalance: 0 };
-    return { uid: userDoc.id, ...userData, ...accountData } as UserProfile & Account;
+    return { uid: foundId, ...foundData, ...accountData } as UserProfile & Account;
   } catch (error) {
     console.error('[v0] Error searching user by cashtag:', error);
     throw error;

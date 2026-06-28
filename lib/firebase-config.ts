@@ -1,4 +1,4 @@
-import { initializeApp, getApps, getApp as _getApp, FirebaseApp } from 'firebase/app';
+import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
 
@@ -13,26 +13,30 @@ function buildConfig() {
   };
 }
 
+// Nothing runs at module load — only when first called.
 let _app: FirebaseApp | null = null;
 let _db: Firestore | null = null;
 let _auth: Auth | null = null;
 
-function app(): FirebaseApp {
+function getApp(): FirebaseApp {
   if (_app) return _app;
   const existing = getApps();
-  if (existing.length > 0) { _app = existing[0]; return _app; }
-  _app = initializeApp(buildConfig());
+  if (existing.length > 0) {
+    _app = existing[0];
+  } else {
+    _app = initializeApp(buildConfig());
+  }
   return _app;
 }
 
-/** Returns the real Firestore instance. Call this at the usage site. */
+/** Returns the real Firestore instance. Call at usage site only. */
 export function getDb(): Firestore {
-  if (!_db) _db = getFirestore(app());
+  if (!_db) _db = getFirestore(getApp());
   return _db;
 }
 
-/** Returns the real Auth instance. Call this at the usage site. */
+/** Returns the real Auth instance. Call at usage site only. */
 export function getAuthInstance(): Auth {
-  if (!_auth) _auth = getAuth(app());
+  if (!_auth) _auth = getAuth(getApp());
   return _auth;
 }

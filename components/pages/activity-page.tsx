@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { onSnapshot, collection, query, orderBy } from 'firebase/firestore';
 import { useAuth } from '@/contexts/auth-context';
-import { getUserTransactions } from '@/lib/firestore-service';
+import { getDb } from '@/lib/firebase-config';
 import { Timestamp } from 'firebase/firestore';
 
 interface ActivityPageProps {
   onOpenProfile: () => void;
-  isAdmin?: boolean;
 }
 
 interface Transaction {
@@ -19,94 +19,94 @@ interface Transaction {
   timestamp: Timestamp | number;
   status: string;
   senderCashtag?: string;
-  recipientCashtag?: string;
 }
 
-export default function ActivityPage({ onOpenProfile, isAdmin = false }: ActivityPageProps) {
+export default function ActivityPage({ onOpenProfile }: ActivityPageProps) {
   const { userId } = useAuth();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Real-time snapshot — no polling, no duplicates
   useEffect(() => {
-    const loadTransactions = async () => {
-      try {
-        if (userId) {
-          const txs = await getUserTransactions(userId);
-          setTransactions(txs as Transaction[]);
-        }
-      } catch (error) {
-        console.error('[v0] Failed to load transactions:', error);
-      } finally {
+    if (!userId) { setIsLoading(false); return; }
+
+    const db = getDb();
+    const txRef = collection(db, 'users', userId, 'transactions');
+    const unsubscribe = onSnapshot(
+      txRef,
+      (snap) => {
+        const txs: Transaction[] = snap.docs.map((d) => ({
+          id: d.id,
+          ...(d.data() as Omit<Transaction, 'id'>),
+        }));
+        // Sort newest first in-memory (avoids needing a composite Firestore index)
+        txs.sort((a, b) => {
+          const ta = a.timestamp instanceof Timestamp ? a.timestamp.toMillis() : (a.timestamp as number);
+          const tb = b.timestamp instanceof Timestamp ? b.timestamp.toMillis() : (b.timestamp as number);
+          return tb - ta;
+        });
+        setTransactions(txs);
+        setIsLoading(false);
+      },
+      (err) => {
+        console.error('[v0] Transactions snapshot error:', err);
         setIsLoading(false);
       }
-    };
-
-    loadTransactions();
+    );
+    return () => unsubscribe();
   }, [userId]);
 
   const formatDate = (timestamp: Timestamp | number) => {
-    let date: Date;
-    if (timestamp instanceof Timestamp) {
-      date = timestamp.toDate();
-    } else {
-      date = new Date(timestamp);
-    }
+    const date = timestamp instanceof Timestamp ? timestamp.toDate() : new Date(timestamp as number);
     const today = new Date();
     const isToday = date.toDateString() === today.toDateString();
     if (isToday) {
       return `Today at ${date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}`;
     }
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + ' at ' + date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+    return (
+      date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) +
+      ' at ' +
+      date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })
+    );
   };
 
-  const getTransactionDirection = (type: string) => {
-    const isPayment = type.toLowerCase().includes('pay');
-    return isPayment ? { label: '-', icon: '↑', color: 'text-gray-400' } : { label: '+', icon: '↓', color: 'text-gray-400' };
-  };
+  // True direction based on transaction type field
+  const isReceived = (type: string) => type === 'payment-received' || type === 'deposit';
 
-  const completedTxs = transactions.filter(tx => tx.status === 'completed');
-  const pendingTxs = transactions.filter(tx => tx.status === 'pending');
+  const completedTxs = transactions.filter((tx) => tx.status === 'completed');
+  const pendingTxs = transactions.filter((tx) => tx.status === 'pending');
 
-  // Transaction Detail - Full Page Receipt
+  // Transaction Detail
   if (selectedTransaction) {
-    const direction = getTransactionDirection(selectedTransaction.type);
-    const isPayment = selectedTransaction.type.toLowerCase().includes('pay');
-    
+    const received = isReceived(selectedTransaction.type);
     return (
       <div className="absolute inset-0 bg-white z-50 flex flex-col w-full h-full overflow-y-auto">
-        {/* Close Button */}
         <button
           onClick={() => setSelectedTransaction(null)}
           className="absolute top-6 left-6 text-[#8E8E93] bg-none border-0 cursor-pointer text-2xl z-10"
         >
           ✕
         </button>
-
-        {/* Receipt Content - Centered */}
         <div className="flex-1 flex flex-col items-center justify-center px-6 py-12 gap-8">
-          {/* Avatar */}
           <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-3xl font-bold">
-            {selectedTransaction.recipient.charAt(0).toUpperCase()}
+            {(selectedTransaction.recipient || '?').charAt(0).toUpperCase()}
           </div>
-
-          {/* Transaction Info */}
           <div className="text-center gap-1 flex flex-col">
             <div className="text-base text-[#8E8E93] font-medium">
-              {isPayment ? 'Payment to' : 'Payment from'} <span className="font-bold text-[#111111]">${selectedTransaction.recipient}</span>
+              {received ? 'Payment from' : 'Payment to'}{' '}
+              <span className="font-bold text-[#111111]">${selectedTransaction.recipient}</span>
             </div>
           </div>
-
-          {/* Amount */}
           <div className="text-center">
-            <div className="text-6xl font-black text-[#111111] mb-3">${selectedTransaction.amount.toFixed(2)}</div>
+            <div className={`text-6xl font-black mb-3 ${received ? 'text-[#00D632]' : 'text-[#111111]'}`}>
+              {received ? '+' : '-'}${selectedTransaction.amount.toFixed(2)}
+            </div>
             {selectedTransaction.note && (
               <div className="text-sm text-[#8E8E93]">For {selectedTransaction.note}</div>
             )}
             <div className="text-sm text-[#8E8E93] mt-2">{formatDate(selectedTransaction.timestamp)}</div>
           </div>
-
-          {/* Status Badge or Action Button */}
           <div className="w-full max-w-xs mt-6">
             {selectedTransaction.status === 'completed' ? (
               <div className="w-full bg-[#00D632] text-white rounded-full py-4 text-center font-bold flex items-center justify-center gap-2 mb-4">
@@ -116,16 +116,11 @@ export default function ActivityPage({ onOpenProfile, isAdmin = false }: Activit
                 Completed
               </div>
             ) : (
-              <button className="w-full bg-[#00D632] text-white rounded-full py-4 text-center font-bold flex items-center justify-center gap-2 mb-4 border-0 cursor-pointer hover:bg-[#00C42A]">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="white" strokeWidth="2">
-                  <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                </svg>
+              <button className="w-full bg-[#00D632] text-white rounded-full py-4 text-center font-bold flex items-center justify-center gap-2 mb-4 border-0 cursor-pointer">
                 Reply
               </button>
             )}
-
-            {/* Web Receipt Button */}
-            <button className="w-full bg-white border border-[#E5E7EB] text-[#111111] rounded-full py-4 font-bold cursor-pointer hover:bg-[#F9F9F9]">
+            <button className="w-full bg-white border border-[#E5E7EB] text-[#111111] rounded-full py-4 font-bold cursor-pointer">
               Web Receipt
             </button>
           </div>
@@ -161,88 +156,81 @@ export default function ActivityPage({ onOpenProfile, isAdmin = false }: Activit
         </div>
       </div>
 
-      {/* Quick Actions - Empty when no transactions */}
-      {completedTxs.length === 0 && pendingTxs.length === 0 && (
-        <div className="flex gap-4 px-4 py-4 overflow-x-auto">
-          <div className="flex flex-col items-center gap-1.5 font-semibold text-xs min-w-[55px]">
-            <div className="w-10 h-10 rounded-full bg-[#00D632] flex items-center justify-center text-white text-lg">
-              +
-            </div>
-            <div className="text-[#111111] font-semibold text-center">Get $20</div>
-          </div>
-        </div>
-      )}
-
       {/* Transaction Sections */}
       <div className="flex-1 overflow-y-auto">
-        {/* Pending Section */}
+        {isLoading && (
+          <div className="text-center text-[#8E8E93] py-8 text-sm">Loading...</div>
+        )}
+
+        {/* Pending */}
         {pendingTxs.length > 0 && (
           <>
-            <div className="text-xs font-bold uppercase text-[#8E8E93] px-4 py-3 border-b border-black/2">
-              PENDING
-            </div>
+            <div className="text-xs font-bold uppercase text-[#8E8E93] px-4 py-3">PENDING</div>
             {pendingTxs.map((tx) => {
-              const direction = getTransactionDirection(tx.type);
+              const received = isReceived(tx.type);
               return (
                 <button
                   key={tx.id}
                   onClick={() => setSelectedTransaction(tx)}
-                  className="w-full bg-white px-4 py-3 flex items-center justify-between border-b border-black/2 cursor-pointer border-0 hover:bg-[#F9F9F9]"
+                  className="w-full bg-white px-4 py-3 flex items-center justify-between border-b border-black/5 cursor-pointer border-0 hover:bg-[#F9F9F9]"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-cyan-500 flex items-center justify-center text-white font-bold">
-                      {tx.recipient.charAt(0).toUpperCase()}
+                      {(tx.recipient || '?').charAt(0).toUpperCase()}
                     </div>
-                    <div>
-                      <div className="text-base font-semibold text-[#111111]">{tx.recipient}</div>
-                      <div className="text-xs text-[#8E8E93] flex items-center gap-1">
-                        <span className={`${direction.color} font-bold`}>{direction.icon}</span>
-                        {tx.type}
-                      </div>
+                    <div className="text-left">
+                      <div className="text-base font-semibold text-[#111111]">${tx.recipient}</div>
+                      <div className="text-xs text-[#8E8E93]">{received ? 'Payment from' : 'Payment to'}</div>
                     </div>
                   </div>
-                  <div className="text-base font-bold text-black">{direction.label}${tx.amount.toFixed(2)}</div>
+                  <div className={`text-base font-bold ${received ? 'text-[#00D632]' : 'text-[#111111]'}`}>
+                    {received ? '+' : '-'}${tx.amount.toFixed(2)}
+                  </div>
                 </button>
               );
             })}
           </>
         )}
 
-        {/* Completed Section */}
+        {/* Completed */}
         {completedTxs.length > 0 && (
           <>
-            <div className="text-xs font-bold uppercase text-[#8E8E93] px-4 py-3 border-b border-black/2">
-              Completed
-            </div>
+            <div className="text-xs font-bold uppercase text-[#8E8E93] px-4 py-3">Completed</div>
             {completedTxs.map((tx) => {
-              const direction = getTransactionDirection(tx.type);
+              const received = isReceived(tx.type);
               return (
                 <button
                   key={tx.id}
                   onClick={() => setSelectedTransaction(tx)}
-                  className="w-full bg-white px-4 py-3 flex items-center justify-between border-b border-black/2 cursor-pointer border-0 hover:bg-[#F9F9F9]"
+                  className="w-full bg-white px-4 py-3 flex items-center justify-between border-b border-black/5 cursor-pointer border-0 hover:bg-[#F9F9F9]"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-purple-500 flex items-center justify-center text-white font-bold">
-                      {tx.recipient.charAt(0).toUpperCase()}
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${received ? 'bg-[#00D632]' : 'bg-purple-500'}`}>
+                      {(tx.recipient || '?').charAt(0).toUpperCase()}
                     </div>
-                    <div>
-                      <div className="text-base font-semibold text-[#111111]">{tx.recipient}</div>
-                      <div className="text-xs text-[#8E8E93] flex items-center gap-1">
-                        <span className={`${direction.color} font-bold`}>{direction.icon}</span>
-                        {formatDate(tx.timestamp)}
-                      </div>
+                    <div className="text-left">
+                      <div className="text-base font-semibold text-[#111111]">${tx.recipient}</div>
+                      <div className="text-xs text-[#8E8E93]">{formatDate(tx.timestamp)}</div>
                     </div>
                   </div>
-                  <div className="text-base font-bold text-black">{direction.label}${tx.amount.toFixed(2)}</div>
+                  <div className={`text-base font-bold ${received ? 'text-[#00D632]' : 'text-[#111111]'}`}>
+                    {received ? '+' : '-'}${tx.amount.toFixed(2)}
+                  </div>
                 </button>
               );
             })}
           </>
         )}
 
-        {transactions.length === 0 && (
-          <div className="text-center text-[#8E8E93] py-8">No transactions yet</div>
+        {!isLoading && transactions.length === 0 && (
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
+            <div className="w-16 h-16 rounded-full bg-[#E5E7EB] flex items-center justify-center">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" strokeWidth="2">
+                <circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" />
+              </svg>
+            </div>
+            <p className="text-[#8E8E93] font-medium">No transactions yet</p>
+          </div>
         )}
       </div>
     </div>

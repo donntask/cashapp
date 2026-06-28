@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useAuth } from '@/contexts/auth-context';
 import { useToast } from '@/contexts/toast-context';
 import { addTransaction, getUserAccount, updateCashBalance, searchUserByCashtag } from '@/lib/firestore-service';
@@ -23,9 +23,13 @@ export default function StatusScreen({
 }: StatusScreenProps) {
   const { userId, isAdmin } = useAuth();
   const { addToast } = useToast();
+  // Guard against React StrictMode double-invocation
+  const hasSaved = useRef(false);
 
   // Save transaction to Firestore (and deduct balance for payments)
   useEffect(() => {
+    if (hasSaved.current) return;
+    hasSaved.current = true;
     const saveTransaction = async () => {
       const cleanRecipient = (recipient || 'Unknown').replace(/^\$/, '').trim();
       const parsedAmount = parseFloat(amount);

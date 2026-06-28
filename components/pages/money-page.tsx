@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { onSnapshot, doc } from 'firebase/firestore';
 import { useAuth } from '@/contexts/auth-context';
-import { getUserAccount } from '@/lib/firestore-service';
+import { getDb } from '@/lib/firebase-config';
 
 interface MoneyPageProps {
   onOpenProfile: () => void;
@@ -16,39 +17,38 @@ export default function MoneyPage({ onOpenProfile, isAdmin = false, onOpenAdminA
   const [savingsBalance, setSavingsBalance] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  const loadBalances = async () => {
-    try {
-      if (isAdmin) {
-        setCashBalance(999999999);
-        setSavingsBalance(999999999);
-        setIsLoading(false);
-      } else if (userId) {
-        const account = await getUserAccount(userId);
-        if (account) {
-          setCashBalance(account.cashBalance || 0);
-          setSavingsBalance(account.savingsBalance || 0);
+  // Real-time Firestore snapshot for balance
+  useEffect(() => {
+    if (isAdmin) {
+      setIsLoading(false);
+      return;
+    }
+    if (!userId) { setIsLoading(false); return; }
+
+    const db = getDb();
+    const unsubscribe = onSnapshot(
+      doc(db, 'accounts', userId),
+      (snap) => {
+        if (snap.exists()) {
+          const data = snap.data();
+          setCashBalance(data.cashBalance ?? 0);
+          setSavingsBalance(data.savingsBalance ?? 0);
         }
         setIsLoading(false);
-      } else {
+      },
+      (err) => {
+        console.error('[v0] Balance snapshot error:', err);
         setIsLoading(false);
       }
-    } catch (error) {
-      console.error('[v0] Failed to load account data:', error);
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadBalances();
-
-    // Reload balances when window regains focus (e.g., after payment)
-    const handleFocus = () => loadBalances();
-    window.addEventListener('focus', handleFocus);
-    return () => window.removeEventListener('focus', handleFocus);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    );
+    return () => unsubscribe();
   }, [userId, isAdmin]);
 
-  const formatCurrency = (amount: number) => {
+  // Abbreviate large numbers: 1k, 1.2m, 3.4b
+  const formatBalance = (amount: number): string => {
+    if (amount >= 1_000_000_000) return `$${(amount / 1_000_000_000).toFixed(1).replace(/\.0$/, '')}b`;
+    if (amount >= 1_000_000)     return `$${(amount / 1_000_000).toFixed(1).replace(/\.0$/, '')}m`;
+    if (amount >= 10_000)        return `$${(amount / 1_000).toFixed(1).replace(/\.0$/, '')}k`;
     return `$${amount.toFixed(2)}`;
   };
 
@@ -76,8 +76,8 @@ export default function MoneyPage({ onOpenProfile, isAdmin = false, onOpenAdminA
             Account & routing <span className="text-[10px]">❯</span>
           </a>
         </div>
-        <div className="text-5xl font-black text-[#111111] mb-4 leading-tight">
-          {isAdmin ? 'Unlimited' : formatCurrency(cashBalance)}
+        <div className="text-5xl font-black text-[#111111] mb-4 leading-tight tabular-nums">
+          {isAdmin ? 'Unlimited' : isLoading ? '—' : formatBalance(cashBalance)}
         </div>
         <div className="flex gap-2">
           <button className="flex-1 h-10 bg-[#F4F4F6] text-[#111111] text-xs font-bold border-0 rounded-full cursor-pointer">
@@ -111,7 +111,7 @@ export default function MoneyPage({ onOpenProfile, isAdmin = false, onOpenAdminA
               <line x1="12" y1="6" x2="12" y2="18" stroke="white" strokeWidth="2" strokeLinecap="round" />
             </svg>
           </div>
-          <div className="text-sm font-bold text-[#111111]">{formatCurrency(savingsBalance)}</div>
+          <div className="text-sm font-bold text-[#111111]">{isAdmin ? '$∞' : formatBalance(savingsBalance)}</div>
           <div className="text-xs text-[#8E8E93]">Save for a goal</div>
         </div>
 
