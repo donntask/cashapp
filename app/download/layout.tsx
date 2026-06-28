@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'Download Cash App',
     description: 'Send money for free, invest in stocks or bitcoin, and bank like you want to.',
-    images: ['/pwa-icon-512.png'],
+    images: ['/cash-app-icon.png'],
   },
 };
 

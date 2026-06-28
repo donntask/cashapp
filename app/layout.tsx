@@ -14,23 +14,21 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: 'Cash App',
   description: 'Send, receive, and invest money with Cash App.',
-  generator: 'v0.app',
+  generator: 'v0.dev',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'Cash App',
-    startupImage: '/pwa-icon-512.png',
+    startupImage: '/cash-app-icon.png',
   },
   icons: {
     icon: [
-      { url: '/icon-light-32x32.png', media: '(prefers-color-scheme: light)' },
-      { url: '/icon-dark-32x32.png', media: '(prefers-color-scheme: dark)' },
-      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/cash-app-icon.png', sizes: '512x512', type: 'image/png' },
     ],
     apple: [
-      { url: '/apple-icon.png', sizes: '180x180' },
-      { url: '/pwa-icon-512.png', sizes: '512x512' },
+      { url: '/cash-app-icon.png', sizes: '180x180' },
+      { url: '/cash-app-icon.png', sizes: '512x512' },
     ],
   },
 }
