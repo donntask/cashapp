@@ -100,7 +100,7 @@ export default function ActivityPage({ onOpenProfile }: ActivityPageProps) {
           </div>
           <div className="text-center">
             <div className={`text-6xl font-black mb-3 ${received ? 'text-[#00D632]' : 'text-[#111111]'}`}>
-              {received ? '+' : '-'}${selectedTransaction.amount.toFixed(2)}
+              {received ? '+' : '-'}${selectedTransaction.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </div>
             {selectedTransaction.note && (
               <div className="text-sm text-[#8E8E93]">For {selectedTransaction.note}</div>
@@ -184,7 +184,7 @@ export default function ActivityPage({ onOpenProfile }: ActivityPageProps) {
                     </div>
                   </div>
                   <div className={`text-base font-bold ${received ? 'text-[#00D632]' : 'text-[#111111]'}`}>
-                    {received ? '+' : '-'}${tx.amount.toFixed(2)}
+                    {received ? '+' : '-'}${tx.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </button>
               );
@@ -210,11 +210,18 @@ export default function ActivityPage({ onOpenProfile }: ActivityPageProps) {
                     </div>
                     <div className="text-left">
                       <div className="text-base font-semibold text-[#111111]">${tx.recipient}</div>
-                      <div className="text-xs text-[#8E8E93]">{formatDate(tx.timestamp)}</div>
+                      <div className="text-xs text-[#8E8E93] flex items-center gap-1">
+                        {received ? (
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#00D632" strokeWidth="3"><line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/></svg>
+                        ) : (
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" strokeWidth="3"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+                        )}
+                        {formatDate(tx.timestamp)}
+                      </div>
                     </div>
                   </div>
                   <div className={`text-base font-bold ${received ? 'text-[#00D632]' : 'text-[#111111]'}`}>
-                    {received ? '+' : '-'}${tx.amount.toFixed(2)}
+                    {received ? '+' : '-'}${tx.amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                   </div>
                 </button>
               );

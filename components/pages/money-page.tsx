@@ -44,12 +44,14 @@ export default function MoneyPage({ onOpenProfile, isAdmin = false, onOpenAdminA
     return () => unsubscribe();
   }, [userId, isAdmin]);
 
-  // Abbreviate large numbers: 1k, 1.2m, 3.4b
+  // Balance card: full dollar amount with commas (e.g. $1,000.00, $12,345.67)
+  // Only abbreviates at 1B+ where the full number is truly impractical
   const formatBalance = (amount: number): string => {
-    if (amount >= 1_000_000_000) return `$${(amount / 1_000_000_000).toFixed(1).replace(/\.0$/, '')}b`;
-    if (amount >= 1_000_000)     return `$${(amount / 1_000_000).toFixed(1).replace(/\.0$/, '')}m`;
-    if (amount >= 10_000)        return `$${(amount / 1_000).toFixed(1).replace(/\.0$/, '')}k`;
-    return `$${amount.toFixed(2)}`;
+    if (amount >= 1_000_000_000)
+      return `$${(amount / 1_000_000_000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}b`;
+    if (amount >= 1_000_000)
+      return `$${(amount / 1_000_000).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}m`;
+    return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   return (
