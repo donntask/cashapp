@@ -15,12 +15,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const isSuperAdmin = email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+    const normalizedEmail = email.trim().toLowerCase();
+    const isSuperAdmin = normalizedEmail === SUPER_ADMIN_EMAIL.toLowerCase();
 
-    // Check if user exists in Firestore
+    // Query with both the original casing and lowercased to handle mixed-case registrations
     const usersRef = collection(db, 'users');
-    const q = query(usersRef, where('email', '==', email));
-    const querySnapshot = await getDocs(q);
+    let querySnapshot = await getDocs(query(usersRef, where('email', '==', normalizedEmail)));
+
+    // Fallback: try original casing if lowercase returned nothing
+    if (querySnapshot.empty && normalizedEmail !== email.trim()) {
+      querySnapshot = await getDocs(query(usersRef, where('email', '==', email.trim())));
+    }
 
     const exists = !querySnapshot.empty;
     let uid: string | null = null;

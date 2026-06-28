@@ -30,100 +30,126 @@ interface AuthFlowProps {
 export default function AuthFlow({ onAuthComplete }: AuthFlowProps) {
   const [currentStep, setCurrentStep] = useState<AuthStep>('auth-start');
   const [history, setHistory] = useState<AuthStep[]>([]);
-  const { authData, updateAuthData, completeAuth, completeAuthWithFirestore, isNewUser, setIsNewUser } = useAuth();
+  const { authData, updateAuthData, completeAuth, completeAuthWithFirestore, setIsNewUser } = useAuth();
   const [isEmailMode, setIsEmailMode] = useState(false);
   const [verificationEmail, setVerificationEmail] = useState('');
-  const [isCheckingEmail, setIsCheckingEmail] = useState(false);
-  // Stored from check-email response for use after OTP verification
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [flowError, setFlowError] = useState('');
+
+  // uid and newUser flag stored from check-email response
   const [existingUserId, setExistingUserId] = useState<string | null>(null);
+  const [resolvedIsNewUser, setResolvedIsNewUser] = useState(true);
 
   const navigateTo = (step: AuthStep) => {
-    setHistory([...history, currentStep]);
+    setHistory((prev) => [...prev, currentStep]);
     setCurrentStep(step);
   };
 
   const goBack = () => {
-    if (history.length === 0) return;
-    const newHistory = [...history];
-    const previousStep = newHistory.pop() as AuthStep;
-    setHistory(newHistory);
-    setCurrentStep(previousStep);
+    setHistory((prev) => {
+      if (prev.length === 0) return prev;
+      const newHistory = [...prev];
+      const previousStep = newHistory.pop() as AuthStep;
+      setCurrentStep(previousStep);
+      return newHistory;
+    });
   };
 
-  const handleAuthStartNext = async () => {
-    if (!authData.contact.trim()) return;
+  /**
+   * Central function called for BOTH entry paths (auth-start email mode + email-required).
+   * 1. Check Firestore for existing user → get uid + isNewUser
+   * 2. Send OTP to the email
+   * 3. Navigate to code-verify
+   */
+  const processEmail = async (email: string) => {
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail) return;
 
-    if (isEmailMode || authData.contact.includes('@')) {
-      const email = authData.contact;
-      setVerificationEmail(email);
-      updateAuthData({ email });
+    setIsProcessing(true);
+    setFlowError('');
 
-      // Super admin always treated as existing user — skip registration
-      const isSuperAdmin = email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+    const isSuperAdmin = normalizedEmail === SUPER_ADMIN_EMAIL.toLowerCase();
 
-      // Check if email exists in Firestore
-      setIsCheckingEmail(true);
-      try {
-        const response = await fetch('/api/auth/check-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email }),
-        });
+    // Step 1: check if email is already registered
+    let isNewUser = !isSuperAdmin; // super admin is never "new"
+    let uid: string | null = null;
 
-        const data = await response.json();
+    try {
+      const checkRes = await fetch('/api/auth/check-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: normalizedEmail }),
+      });
 
-        if (data.success) {
-          setIsNewUser(isSuperAdmin ? false : data.isNewUser);
-          // Store the uid if the user already exists
-          if (data.uid) setExistingUserId(data.uid);
-        } else {
-          console.error('[v0] Error checking email:', data.error);
-          setIsNewUser(!isSuperAdmin);
+      if (checkRes.ok) {
+        const checkData = await checkRes.json();
+        if (checkData.success) {
+          isNewUser = isSuperAdmin ? false : checkData.isNewUser;
+          uid = checkData.uid ?? null;
         }
-      } catch (error) {
-        console.error('[v0] Error checking email:', error);
-        setIsNewUser(!isSuperAdmin);
-      } finally {
-        setIsCheckingEmail(false);
       }
+    } catch (err) {
+      // Non-fatal — if check fails we default to new user flow
+      console.error('[v0] check-email failed, defaulting to new user:', err);
+    }
 
-      navigateTo('code-verify');
+    setResolvedIsNewUser(isNewUser);
+    setIsNewUser(isNewUser);
+    setExistingUserId(uid);
+    setVerificationEmail(normalizedEmail);
+    updateAuthData({ email: normalizedEmail });
+
+    // Step 2: send OTP
+    try {
+      const otpRes = await fetch('/api/auth/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: normalizedEmail }),
+      });
+
+      if (!otpRes.ok) {
+        const otpData = await otpRes.json();
+        setFlowError(otpData.error || 'Failed to send verification code. Please try again.');
+        setIsProcessing(false);
+        return;
+      }
+    } catch (err) {
+      console.error('[v0] send-otp failed:', err);
+      setFlowError('Failed to send verification code. Please check your connection.');
+      setIsProcessing(false);
+      return;
+    }
+
+    setIsProcessing(false);
+    navigateTo('code-verify');
+  };
+
+  // --- Step handlers ---
+
+  const handleAuthStartNext = async () => {
+    const contact = authData.contact.trim();
+    if (!contact) return;
+
+    if (isEmailMode || contact.includes('@')) {
+      await processEmail(contact);
     } else {
+      // Phone number — go to email-required to collect email separately
       navigateTo('email-required');
     }
   };
 
   const handleEmailRequiredNext = async () => {
-    if (!authData.email.trim()) return;
-    const email = authData.email;
-    setVerificationEmail(email);
-    updateAuthData({ email });
-
-    const isSuperAdmin = email.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
-
-    try {
-      const response = await fetch('/api/auth/check-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-      const data = await response.json();
-      if (data.success) {
-        setIsNewUser(isSuperAdmin ? false : data.isNewUser);
-        if (data.uid) setExistingUserId(data.uid);
-      }
-    } catch {}
-
-    navigateTo('code-verify');
+    const email = authData.email.trim();
+    if (!email) return;
+    await processEmail(email);
   };
 
-  // Called after OTP is successfully verified
+  // Called by CodeVerifyStep after OTP is successfully verified
   const handleOtpVerified = async () => {
     const isSuperAdmin = verificationEmail.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
 
-    if (!isNewUser || isSuperAdmin) {
-      // Existing user or super admin: complete auth immediately
-      // Super admin without a Firestore uid still gets completeAuth() so they land on admin dashboard
+    if (!resolvedIsNewUser || isSuperAdmin) {
+      // Existing user or super admin — skip registration, go straight to dashboard
       if (existingUserId) {
         try {
           await completeAuthWithFirestore(existingUserId, true);
@@ -131,12 +157,12 @@ export default function AuthFlow({ onAuthComplete }: AuthFlowProps) {
           completeAuth();
         }
       } else {
-        // Super admin who hasn't been registered yet — still complete with admin flag
+        // Super admin with no Firestore record yet
         completeAuth();
       }
       onAuthComplete();
     } else {
-      // Brand new user: show registration flow
+      // Brand new user — start registration
       navigateTo('debit-card');
     }
   };
@@ -176,21 +202,28 @@ export default function AuthFlow({ onAuthComplete }: AuthFlowProps) {
             Skip
           </button>
         ) : currentStep !== 'welcome-final' ? (
-          <button className="text-2xl text-gray-900 bg-none border-none cursor-pointer">
-            ?
-          </button>
+          <button className="text-2xl text-gray-900 bg-none border-none cursor-pointer">?</button>
         ) : null}
       </div>
 
       {/* Step Container */}
       <div className="flex-1 px-8 py-5 overflow-y-auto flex flex-col">
+        {/* Global flow error (OTP send failure etc.) */}
+        {flowError && (
+          <div className="mb-4 p-3 rounded-lg bg-red-50 border border-red-200">
+            <p className="text-sm text-red-700">{flowError}</p>
+          </div>
+        )}
+
         {currentStep === 'auth-start' && (
           <AuthStartStep
             onNext={handleAuthStartNext}
             isEmailMode={isEmailMode}
+            isLoading={isProcessing}
             onToggleMode={() => {
               setIsEmailMode(!isEmailMode);
               updateAuthData({ contact: '' });
+              setFlowError('');
             }}
           />
         )}
@@ -198,7 +231,7 @@ export default function AuthFlow({ onAuthComplete }: AuthFlowProps) {
         {currentStep === 'email-required' && (
           <EmailRequiredStep
             onNext={handleEmailRequiredNext}
-            isLoading={isCheckingEmail}
+            isLoading={isProcessing}
           />
         )}
 
@@ -217,33 +250,23 @@ export default function AuthFlow({ onAuthComplete }: AuthFlowProps) {
         )}
 
         {currentStep === 'add-name' && (
-          <AddNameStep
-            onNext={() => navigateTo('cashtag')}
-          />
+          <AddNameStep onNext={() => navigateTo('cashtag')} />
         )}
 
         {currentStep === 'cashtag' && (
-          <CashtagStep
-            onNext={() => navigateTo('zip-code')}
-          />
+          <CashtagStep onNext={() => navigateTo('zip-code')} />
         )}
 
         {currentStep === 'zip-code' && (
-          <ZipCodeStep
-            onNext={() => navigateTo('invite-friends')}
-          />
+          <ZipCodeStep onNext={() => navigateTo('invite-friends')} />
         )}
 
         {currentStep === 'invite-friends' && (
-          <InviteFriendsStep
-            onNext={() => navigateTo('welcome-final')}
-          />
+          <InviteFriendsStep onNext={() => navigateTo('welcome-final')} />
         )}
 
         {currentStep === 'welcome-final' && (
-          <WelcomeFinalStep
-            onComplete={handleWelcomeComplete}
-          />
+          <WelcomeFinalStep onComplete={handleWelcomeComplete} />
         )}
       </div>
     </div>
