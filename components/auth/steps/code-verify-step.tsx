@@ -31,28 +31,12 @@ export default function CodeVerifyStep({
       setIsLoading(true);
       setError('');
 
-      // Remove the dash from code for API
-      const otpCode = code.replace(/-/g, ''); // Use global flag to remove all dashes
-
-      // Get registered users from localStorage
-      let registeredUsers = [];
-      try {
-        const stored = localStorage.getItem('cashapp_registered_users');
-        registeredUsers = stored ? JSON.parse(stored) : [];
-      } catch (e) {
-        console.error('[v0] Error reading registered users:', e);
-      }
+      const otpCode = code.replace(/-/g, '');
 
       const response = await fetch('/api/auth/verify-otp', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: verificationEmail,
-          otp: otpCode,
-          registeredUsers,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: verificationEmail, otp: otpCode }),
       });
 
       if (!response.ok) {

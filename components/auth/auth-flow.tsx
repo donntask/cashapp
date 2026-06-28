@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase-config';
 import { useAuth, SUPER_ADMIN_EMAIL } from '@/contexts/auth-context';
@@ -38,9 +38,13 @@ export default function AuthFlow({ onAuthComplete }: AuthFlowProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const [flowError, setFlowError] = useState('');
 
-  // uid and newUser flag stored from check-email response
+  // uid and newUser flag stored from check-email response.
+  // Stored in BOTH state (for renders) and refs (so handleOtpVerified
+  // always reads the latest value — avoids stale closure bug).
   const [existingUserId, setExistingUserId] = useState<string | null>(null);
   const [resolvedIsNewUser, setResolvedIsNewUser] = useState(true);
+  const resolvedIsNewUserRef = useRef(true);
+  const existingUserIdRef = useRef<string | null>(null);
 
   const navigateTo = (step: AuthStep) => {
     setHistory((prev) => [...prev, currentStep]);
@@ -94,6 +98,8 @@ export default function AuthFlow({ onAuthComplete }: AuthFlowProps) {
       console.error('[v0] Firestore email check failed, defaulting to new user:', err);
     }
 
+    resolvedIsNewUserRef.current = isNewUser;
+    existingUserIdRef.current = uid;
     setResolvedIsNewUser(isNewUser);
     setIsNewUser(isNewUser);
     setExistingUserId(uid);
@@ -145,15 +151,19 @@ export default function AuthFlow({ onAuthComplete }: AuthFlowProps) {
     await processEmail(email);
   };
 
-  // Called by CodeVerifyStep after OTP is successfully verified
+  // Called by CodeVerifyStep after OTP is successfully verified.
+  // Reads from refs (not state) to guarantee the latest values are used
+  // and avoid the stale closure problem.
   const handleOtpVerified = async () => {
     const isSuperAdmin = verificationEmail.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+    const isNew = resolvedIsNewUserRef.current;
+    const uid = existingUserIdRef.current;
 
-    if (!resolvedIsNewUser || isSuperAdmin) {
+    if (!isNew || isSuperAdmin) {
       // Existing user or super admin — skip registration, go straight to dashboard
-      if (existingUserId) {
+      if (uid) {
         try {
-          await completeAuthWithFirestore(existingUserId, true);
+          await completeAuthWithFirestore(uid, true);
         } catch {
           completeAuth();
         }
