@@ -27,16 +27,6 @@ export default function MoneyPage({ onOpenProfile, isAdmin = false, onOpenAdminA
         if (account) {
           setCashBalance(account.cashBalance || 0);
           setSavingsBalance(account.savingsBalance || 0);
-        } else {
-          // Fallback to localStorage
-          try {
-            const appData = localStorage.getItem('cashapp_app_data');
-            if (appData) {
-              const data = JSON.parse(appData);
-              setCashBalance(data.cashBalance || 0);
-              setSavingsBalance(data.savingsBalance || 0);
-            }
-          } catch {}
         }
         setIsLoading(false);
       } else {

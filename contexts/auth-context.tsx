@@ -152,7 +152,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setVerifiedEmail('');
     try {
       localStorage.removeItem('cashapp_auth_data');
-      localStorage.removeItem('cashapp_app_data');
       localStorage.removeItem('cashapp_user_id');
       localStorage.removeItem('cashapp_admin');
     } catch (error) {
@@ -163,23 +162,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const completeAuth = () => {
     setIsAuthenticated(true);
     setSessionPersisted(true);
-    // Persist user data to app data storage
+    // Persist only the minimal session tokens needed for restore
     try {
-      const appData = localStorage.getItem('cashapp_app_data');
-      let data = appData ? JSON.parse(appData) : { user: null, cashBalance: 0, savingsBalance: 0, bankAccount: null, transactions: [], lastUpdated: Date.now() };
-      data.user = {
-        firstName: authData.firstName,
-        lastName: authData.lastName,
-        cashtag: authData.cashtag,
-        phoneNumber: authData.contact,
-        email: authData.email,
-        zipCode: authData.zipCode,
-      };
-      data.lastUpdated = Date.now();
-      localStorage.setItem('cashapp_app_data', JSON.stringify(data));
       localStorage.setItem('cashapp_auth_data', JSON.stringify(authData));
     } catch (error) {
-      console.error('[v0] Failed to save app data:', error);
+      console.error('[v0] Failed to save session data:', error);
     }
   };
 

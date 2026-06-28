@@ -38,16 +38,7 @@ export default function PinScreen({
             const balance = account.cashBalance || 0;
             setUserBalance(balance);
             setHasSufficientFunds(balance >= parseFloat(amount));
-            return;
           }
-        }
-        // Fallback to localStorage
-        const appData = localStorage.getItem('cashapp_app_data');
-        if (appData) {
-          const data = JSON.parse(appData);
-          const balance = data.cashBalance || 0;
-          setUserBalance(balance);
-          setHasSufficientFunds(balance >= parseFloat(amount));
         }
       } catch (error) {
         console.error('[v0] Error checking balance:', error);

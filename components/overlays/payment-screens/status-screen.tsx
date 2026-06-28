@@ -64,28 +64,7 @@ export default function StatusScreen({
         }
       }
 
-      // Also keep localStorage in sync for offline fallback
-      try {
-        const appData = localStorage.getItem('cashapp_app_data');
-        const data = appData ? JSON.parse(appData) : { transactions: [], cashBalance: 0, savingsBalance: 0, user: null, bankAccount: null, lastUpdated: Date.now() };
-        if (!data.transactions) data.transactions = [];
-        data.transactions.push({
-          id: `tx_${Date.now()}`,
-          type: transactionType === 'Pay' ? 'payment-sent' : 'payment-received',
-          amount: parsedAmount,
-          recipient: cleanRecipient,
-          note,
-          timestamp: Date.now(),
-          status: 'completed',
-        });
-        if (transactionType === 'Pay' && !isAdmin) {
-          data.cashBalance = Math.max(0, (data.cashBalance || 0) - parsedAmount);
-        }
-        data.lastUpdated = Date.now();
-        localStorage.setItem('cashapp_app_data', JSON.stringify(data));
-      } catch (error) {
-        console.error('[v0] Failed to save transaction to localStorage:', error);
-      }
+
     };
 
     saveTransaction();

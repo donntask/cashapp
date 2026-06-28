@@ -44,29 +44,15 @@ export default function ProfileOverlay({ onClose, onSelectSetting, onOpenSetting
   };
 
   useEffect(() => {
-    try {
-      // Try localStorage first for full user object, fall back to authData context
-      const appData = localStorage.getItem('cashapp_app_data');
-      if (appData) {
-        const data = JSON.parse(appData);
-        if (data.user) {
-          setUser(data.user);
-          return;
-        }
-      }
-      // Fallback: build user from authData context
-      if (authData.firstName) {
-        setUser({
-          firstName: authData.firstName,
-          lastName: authData.lastName,
-          cashtag: authData.cashtag,
-          phoneNumber: authData.contact,
-          email: authData.email,
-          zipCode: authData.zipCode,
-        });
-      }
-    } catch (error) {
-      console.error('[v0] Failed to load user data:', error);
+    if (authData.firstName) {
+      setUser({
+        firstName: authData.firstName,
+        lastName: authData.lastName,
+        cashtag: authData.cashtag,
+        phoneNumber: authData.contact,
+        email: authData.email,
+        zipCode: authData.zipCode,
+      });
     }
   }, [authData]);
 
