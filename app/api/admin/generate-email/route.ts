@@ -2,13 +2,19 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(request: NextRequest) {
   try {
-    const { prompt, recipientName, recipientEmail } = await request.json();
+    const body = await request.json();
+    console.log('[v0] generate-email received body:', JSON.stringify(body));
+    const { prompt, recipientName, recipientEmail } = body;
+    console.log('[v0] generate-email fields — prompt:', prompt, '| recipientName:', recipientName, '| recipientEmail:', recipientEmail);
 
     if (!prompt || !recipientName) {
+      console.error('[v0] generate-email validation failed — prompt:', !!prompt, 'recipientName:', !!recipientName);
       return NextResponse.json({ error: 'prompt and recipientName are required' }, { status: 400 });
     }
 
-    if (!process.env.OPENROUTER_API_KEY) {
+    const keyPresent = !!process.env.OPENROUTER_API_KEY;
+    console.log('[v0] generate-email OPENROUTER_API_KEY present:', keyPresent);
+    if (!keyPresent) {
       return NextResponse.json({ error: 'OpenRouter API key not configured' }, { status: 500 });
     }
 
@@ -29,6 +35,7 @@ Admin instruction: ${prompt}
 
 Write the email body now:`;
 
+    console.log('[v0] generate-email calling OpenRouter with model deepseek/deepseek-v4-flash for:', recipientName);
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -58,6 +65,7 @@ Write the email body now:`;
     }
 
     const data = await response.json();
+    console.log('[v0] generate-email OpenRouter response finish_reason:', data.choices?.[0]?.finish_reason, '| content length:', data.choices?.[0]?.message?.content?.length ?? 0);
     const generatedBody = data.choices?.[0]?.message?.content?.trim();
 
     if (!generatedBody) {
