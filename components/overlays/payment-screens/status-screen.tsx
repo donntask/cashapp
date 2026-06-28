@@ -108,30 +108,56 @@ export default function StatusScreen({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Format the amount with commas, scaled to fit
+  const parsedAmt = parseFloat(amount) || 0;
+  const formattedAmt = `$${parsedAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
   const message =
     transactionType === 'Pay'
-      ? `Sent! $${amount} will be deposited once ${recipient} accepts this payment.`
-      : `Requested! $${amount} payment request sent to ${recipient}.`;
+      ? `Sent! $${parsedAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })} will be deposited once ${recipient} accepts this payment.`
+      : `Requested! $${parsedAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })} payment request sent to ${recipient}.`;
 
   return (
     <div className="flex flex-col w-full h-full bg-white">
       {/* Content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-8 text-center pb-20">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 text-center pb-20">
         {/* Green Checkmark Circle */}
-        <div className="w-20 h-20 bg-[#00D632] text-white rounded-full flex items-center justify-center text-5xl font-bold mb-8 flex-shrink-0">
+        <div className="w-20 h-20 bg-[#00D632] text-white rounded-full flex items-center justify-center text-5xl font-bold mb-6 flex-shrink-0">
           ✓
         </div>
+        {/* Amount — scales down to fit using fluid text size */}
+        <div
+          className="font-black text-[#111111] mb-2 w-full text-center leading-none tabular-nums"
+          style={{
+            fontSize: `clamp(1.5rem, ${Math.max(1.5, 9 - formattedAmt.length * 0.45)}vw + 1rem, 4rem)`,
+            wordBreak: 'break-all',
+          }}
+        >
+          {formattedAmt}
+        </div>
+        {/* Label */}
+        <p className="text-base text-[#8E8E93] mb-2">
+          {transactionType === 'Pay' ? `Payment to` : `Requested from`} <span className="font-bold text-[#111111]">${recipient.replace(/^\$/, '')}</span>
+        </p>
         {/* Message */}
-        <div className="text-lg text-[#111111] mb-16 leading-relaxed font-medium">
+        <div className="text-sm text-[#8E8E93] mb-12 leading-relaxed max-w-xs">
           {message}
         </div>
-        {/* Done Button */}
-        <button
-          onClick={onClose}
-          className="w-full max-w-xs h-14 bg-[#00D632] text-white rounded-full border-0 font-bold text-lg cursor-pointer flex-shrink-0 hover:bg-[#00C428] active:bg-[#00B820]"
-        >
-          Done
-        </button>
+        {/* Buttons */}
+        <div className="w-full max-w-xs flex flex-col gap-3">
+          <button
+            onClick={onClose}
+            className="w-full h-14 bg-[#00D632] text-white rounded-full border-0 font-bold text-lg cursor-pointer hover:bg-[#00C428] active:bg-[#00B820]"
+          >
+            Done
+          </button>
+          <button
+            onClick={onClose}
+            className="w-full h-12 bg-transparent text-[#111111] rounded-full border border-[#E5E7EB] font-bold text-base cursor-pointer"
+          >
+            Web Receipt
+          </button>
+        </div>
       </div>
     </div>
   );

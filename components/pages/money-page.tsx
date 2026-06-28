@@ -22,8 +22,37 @@ export default function MoneyPage({ onOpenProfile, isAdmin = false, onOpenAdminA
   const [savingsBalance, setSavingsBalance] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [showUnavailable, setShowUnavailable] = useState<string | null>(null);
+  const [isPulling, setIsPulling] = useState(false);
+  const [pullY, setPullY] = useState(0);
+  const pullStartY = useRef(0);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const handleUnavailable = (feature: string) => setShowUnavailable(feature);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (scrollRef.current && scrollRef.current.scrollTop === 0) {
+      pullStartY.current = e.touches[0].clientY;
+    }
+  };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (pullStartY.current === 0) return;
+    const delta = e.touches[0].clientY - pullStartY.current;
+    if (delta > 0 && delta < 80) setPullY(delta);
+  };
+  const handleTouchEnd = async () => {
+    if (pullY > 50) {
+      setIsPulling(true);
+      setPullY(0);
+      pullStartY.current = 0;
+      // Snapshot already live — just reset the prev balance ref to force re-read
+      prevBalanceRef.current = null;
+      await new Promise(r => setTimeout(r, 800));
+      setIsPulling(false);
+    } else {
+      setPullY(0);
+      pullStartY.current = 0;
+    }
+  };
 
   // Request notification permission once on mount
   useEffect(() => {
@@ -80,7 +109,24 @@ export default function MoneyPage({ onOpenProfile, isAdmin = false, onOpenAdminA
   };
 
   return (
-    <div className="flex flex-col w-full h-full overflow-hidden">
+    <div
+      className="flex flex-col w-full h-full overflow-y-auto"
+      ref={scrollRef}
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
+      {/* Pull-to-refresh indicator */}
+      {(pullY > 0 || isPulling) && (
+        <div
+          className="flex items-center justify-center transition-all duration-200"
+          style={{ height: isPulling ? 40 : pullY * 0.5 }}
+        >
+          <svg className={`text-[#00D632] ${isPulling ? 'animate-spin' : ''}`} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+          </svg>
+        </div>
+      )}
       {/* Header */}
       <div className="flex justify-between items-center px-6 py-4 flex-shrink-0">
         <h1 className="text-4xl font-black text-[#111111]">Money</h1>
@@ -121,11 +167,11 @@ export default function MoneyPage({ onOpenProfile, isAdmin = false, onOpenAdminA
           </button>
         </div>
 
-        {/* Unavailable feature modal */}
+        {/* Unavailable feature modal — z-[200] sits above navbar (z-50) */}
         {showUnavailable && (
-          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={() => setShowUnavailable(null)}>
+          <div className="fixed inset-0 z-[200] flex items-end justify-center bg-black/40" onClick={() => setShowUnavailable(null)}>
             <div
-              className="bg-white w-full max-w-[412px] rounded-t-3xl p-6 pb-10 flex flex-col items-center gap-4"
+              className="bg-white w-full max-w-[412px] rounded-t-3xl p-6 pb-16 flex flex-col items-center gap-4"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="w-12 h-1 bg-[#E5E7EB] rounded-full mb-2" />
@@ -160,7 +206,7 @@ export default function MoneyPage({ onOpenProfile, isAdmin = false, onOpenAdminA
       </div>
 
       {/* Features Grid */}
-      <div className="grid grid-cols-2 gap-1.5 px-3 pb-3 flex-1 overflow-hidden">
+      <div className="grid grid-cols-2 gap-1.5 px-3 pb-24 flex-shrink-0">
         {/* Savings */}
         <div className="bg-white rounded-[12px] p-2.5 flex flex-col cursor-pointer min-h-0">
           <div className="flex justify-between items-start mb-1">

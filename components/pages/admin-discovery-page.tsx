@@ -1,10 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { getDb } from '@/lib/firebase-config';
 import { useAuth, SUPER_ADMIN_EMAIL } from '@/contexts/auth-context';
 import { useToast } from '@/contexts/toast-context';
+import { getUnreadSupportCount } from '@/lib/firestore-service';
+import AdminSupportChatModal from '@/components/overlays/admin-support-chat-modal';
+import AdminTransactionsModal from '@/components/overlays/admin-transactions-modal';
 
 interface FoundUser {
   uid: string;
@@ -33,6 +36,9 @@ export default function AdminDiscoveryPage({ onOpenProfile }: AdminDiscoveryPage
   const [reason, setReason] = useState('');
   const [feeAmount, setFeeAmount] = useState('');
   const [fundAmount, setFundAmount] = useState('');
+  const [showSupportChat, setShowSupportChat] = useState(false);
+  const [showTransactions, setShowTransactions] = useState(false);
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
 
   // AI email compose state
   const [emailPrompt, setEmailPrompt] = useState('');
@@ -44,6 +50,17 @@ export default function AdminDiscoveryPage({ onOpenProfile }: AdminDiscoveryPage
 
   const isSuperAdmin = authData.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
 
+  // Fetch unread message counts whenever results change
+  useEffect(() => {
+    if (results.length === 0) return;
+    Promise.all(results.map(async (u) => {
+      const count = await getUnreadSupportCount(u.uid);
+      return [u.uid, count] as [string, number];
+    })).then((entries) => {
+      setUnreadCounts(Object.fromEntries(entries));
+    });
+  }, [results]);
+
   const handleSearch = async () => {
     if (!searchTerm.trim()) return;
     setIsSearching(true);
@@ -52,11 +69,9 @@ export default function AdminDiscoveryPage({ onOpenProfile }: AdminDiscoveryPage
 
     try {
       const db = getDb();
-      console.log('[v0] Admin search: db instance =', typeof db, db);
       const usersRef = collection(db, 'users');
 
       const rawTerm = searchTerm.replace(/^\$/, '').trim();
-      console.log('[v0] Admin search: rawTerm =', rawTerm);
       const variants = Array.from(new Set([
         rawTerm,
         rawTerm.toLowerCase(),
@@ -64,20 +79,16 @@ export default function AdminDiscoveryPage({ onOpenProfile }: AdminDiscoveryPage
         rawTerm.charAt(0).toUpperCase() + rawTerm.slice(1).toLowerCase(),
         rawTerm.charAt(0).toLowerCase() + rawTerm.slice(1),
       ]));
-      console.log('[v0] Admin search: trying exact variants =', variants);
 
       const seenIds = new Set<string>();
       const found: FoundUser[] = [];
 
       for (const v of variants) {
-        console.log('[v0] Admin search: querying cashtag ==', v);
         const snap = await getDocs(query(usersRef, where('cashtag', '==', v)));
-        console.log('[v0] Admin search: variant', v, '-> docs found =', snap.size);
         snap.forEach((docSnap) => {
           if (seenIds.has(docSnap.id)) return;
           seenIds.add(docSnap.id);
           const d = docSnap.data();
-          console.log('[v0] Admin search: matched doc =', { id: docSnap.id, data: d });
           found.push({ uid: docSnap.id, firstName: d.firstName || '', lastName: d.lastName || '', cashtag: d.cashtag || '', email: d.email || '', isAdmin: d.isAdmin || false, isBlocked: d.isBlocked || false });
         });
         if (found.length > 0) break;
@@ -85,9 +96,7 @@ export default function AdminDiscoveryPage({ onOpenProfile }: AdminDiscoveryPage
 
       if (found.length === 0) {
         const lower = rawTerm.toLowerCase();
-        console.log('[v0] Admin search: exact match failed, trying range lower=', lower);
         const snap = await getDocs(query(usersRef, where('cashtag', '>=', lower), where('cashtag', '<=', lower + '\uf8ff')));
-        console.log('[v0] Admin search: lowercase range -> docs =', snap.size);
         snap.forEach((docSnap) => {
           if (seenIds.has(docSnap.id)) return;
           seenIds.add(docSnap.id);
@@ -96,9 +105,7 @@ export default function AdminDiscoveryPage({ onOpenProfile }: AdminDiscoveryPage
         });
         if (found.length === 0) {
           const titleTerm = rawTerm.charAt(0).toUpperCase() + rawTerm.slice(1).toLowerCase();
-          console.log('[v0] Admin search: trying Title-case range titleTerm=', titleTerm);
           const snap2 = await getDocs(query(usersRef, where('cashtag', '>=', titleTerm), where('cashtag', '<=', titleTerm + '\uf8ff')));
-          console.log('[v0] Admin search: Title-case range -> docs =', snap2.size);
           snap2.forEach((docSnap) => {
             if (seenIds.has(docSnap.id)) return;
             seenIds.add(docSnap.id);
@@ -108,7 +115,6 @@ export default function AdminDiscoveryPage({ onOpenProfile }: AdminDiscoveryPage
         }
       }
 
-      console.log('[v0] Admin search: final results =', found.length, found);
       if (found.length === 0) addToast('No users found for that cashtag', 'error');
       setResults(found);
     } catch (err) {
@@ -239,6 +245,8 @@ export default function AdminDiscoveryPage({ onOpenProfile }: AdminDiscoveryPage
     { id: 'block_transaction',  label: 'Block Transactions',  color: 'hover:bg-orange-50', textColor: 'text-orange-600' },
     { id: 'send_email',         label: 'Send Email',          color: 'hover:bg-blue-50',   textColor: 'text-blue-600' },
     { id: 'request_fee',        label: 'Request Fee',         color: 'hover:bg-[#F4F4F6]', textColor: 'text-[#111111]' },
+    { id: 'view_support',       label: 'Support Chat',        color: 'hover:bg-purple-50', textColor: 'text-purple-600' },
+    { id: 'view_transactions',  label: 'View Transactions',   color: 'hover:bg-[#F4F4F6]', textColor: 'text-[#111111]' },
     ...(isSuperAdmin ? [
       { id: 'make_admin',   label: 'Make Sub-Admin',  color: 'hover:bg-[#F4F4F6]', textColor: 'text-[#111111]' },
       { id: 'remove_admin', label: 'Remove Admin',    color: 'hover:bg-red-50',    textColor: 'text-red-600' },
@@ -307,6 +315,11 @@ export default function AdminDiscoveryPage({ onOpenProfile }: AdminDiscoveryPage
                 </div>
                 {user.isAdmin && <span className="text-xs font-bold text-[#00D632] bg-[#E6FFF0] px-2 py-0.5 rounded-full">Admin</span>}
                 {user.isBlocked && <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full">Blocked</span>}
+                {(unreadCounts[user.uid] ?? 0) > 0 && (
+                  <span className="w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center flex-shrink-0">
+                    {unreadCounts[user.uid]}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -343,10 +356,19 @@ export default function AdminDiscoveryPage({ onOpenProfile }: AdminDiscoveryPage
                   {actions.map((a) => (
                     <button
                       key={a.id}
-                      onClick={() => setActiveAction(a.id)}
-                      className={`bg-white border border-[#E5E7EB] rounded-2xl p-3 text-left cursor-pointer ${a.color} transition-colors`}
+                      onClick={() => {
+                        if (a.id === 'view_support') { setShowSupportChat(true); return; }
+                        if (a.id === 'view_transactions') { setShowTransactions(true); return; }
+                        setActiveAction(a.id);
+                      }}
+                      className={`bg-white border border-[#E5E7EB] rounded-2xl p-3 text-left cursor-pointer ${a.color} transition-colors relative`}
                     >
                       <p className={`font-semibold text-sm ${a.textColor}`}>{a.label}</p>
+                      {a.id === 'view_support' && selectedUser && (unreadCounts[selectedUser.uid] ?? 0) > 0 && (
+                        <span className="absolute top-2 right-2 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center">
+                          {unreadCounts[selectedUser.uid]}
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -538,6 +560,32 @@ export default function AdminDiscoveryPage({ onOpenProfile }: AdminDiscoveryPage
           </div>
         )}
       </div>
+
+      {/* Admin Support Chat Modal */}
+      {showSupportChat && selectedUser && (
+        <AdminSupportChatModal
+          userId={selectedUser.uid}
+          userName={`${selectedUser.firstName} ${selectedUser.lastName}`.trim() || selectedUser.cashtag}
+          userCashtag={selectedUser.cashtag}
+          onClose={() => {
+            setShowSupportChat(false);
+            // Refresh unread counts after viewing
+            getUnreadSupportCount(selectedUser.uid).then(count =>
+              setUnreadCounts(prev => ({ ...prev, [selectedUser.uid]: count }))
+            );
+          }}
+        />
+      )}
+
+      {/* Admin Transactions Modal */}
+      {showTransactions && selectedUser && (
+        <AdminTransactionsModal
+          userId={selectedUser.uid}
+          userName={`${selectedUser.firstName} ${selectedUser.lastName}`.trim() || selectedUser.cashtag}
+          userCashtag={selectedUser.cashtag}
+          onClose={() => setShowTransactions(false)}
+        />
+      )}
     </div>
   );
 }

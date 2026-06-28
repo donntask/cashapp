@@ -10,6 +10,7 @@ import {
   getDocs,
   Timestamp,
   increment,
+  writeBatch,
 } from 'firebase/firestore';
 import { getDb } from './firebase-config';
 
@@ -322,5 +323,78 @@ export async function getInviteCount(uid: string): Promise<number> {
     return snap.exists() ? (snap.data().inviteCount ?? 0) : 0;
   } catch {
     return 0;
+  }
+}
+
+// Admin support chat: send a reply from admin side
+export async function sendAdminSupportReply(userId: string, message: string, adminName: string): Promise<void> {
+  const db = getDb();
+  try {
+    await addDoc(collection(db, 'supportMessages'), {
+      uid: userId,
+      userName: adminName,
+      message,
+      timestamp: Timestamp.now(),
+      status: 'replied',
+      role: 'admin',
+      read: false,
+    });
+    // Mark all user messages for this uid as read
+    const snap = await getDocs(query(collection(db, 'supportMessages'), where('uid', '==', userId), where('role', '==', 'user'), where('read', '==', false)));
+    const batch = writeBatch(getDb());
+    snap.forEach(d => batch.update(d.ref, { read: true }));
+    await batch.commit();
+  } catch (error) {
+    console.error('[v0] Error sending admin reply:', error);
+    throw error;
+  }
+}
+
+// Set typing indicator in Firestore
+export async function setTypingIndicator(uid: string, role: 'user' | 'admin', isTyping: boolean): Promise<void> {
+  const db = getDb();
+  try {
+    await updateDoc(doc(db, 'users', uid), { [`typing_${role}`]: isTyping });
+  } catch {}
+}
+
+// Get unread message count for a user
+export async function getUnreadSupportCount(uid: string): Promise<number> {
+  const db = getDb();
+  try {
+    const snap = await getDocs(query(collection(db, 'supportMessages'), where('uid', '==', uid), where('role', '==', 'user'), where('read', '==', false)));
+    return snap.size;
+  } catch {
+    return 0;
+  }
+}
+
+// Freeze or unfreeze a transaction
+export async function setTransactionFrozen(userId: string, txId: string, frozen: boolean): Promise<void> {
+  const db = getDb();
+  try {
+    await updateDoc(doc(db, 'users', userId, 'transactions', txId), { frozen, updatedAt: Timestamp.now() });
+  } catch (error) {
+    console.error('[v0] Error freezing transaction:', error);
+    throw error;
+  }
+}
+
+// Revert a transaction (add back balance for sent, deduct for received)
+export async function revertTransaction(userId: string, txId: string): Promise<void> {
+  const db = getDb();
+  try {
+    const txSnap = await getDoc(doc(db, 'users', userId, 'transactions', txId));
+    if (!txSnap.exists()) throw new Error('Transaction not found');
+    const tx = txSnap.data();
+    if (tx.reverted) throw new Error('Already reverted');
+    const accountSnap = await getDoc(doc(db, 'accounts', userId));
+    const currentBalance = accountSnap.exists() ? accountSnap.data().cashBalance : 0;
+    const delta = tx.type === 'payment-sent' ? tx.amount : -(tx.amount);
+    await updateDoc(doc(db, 'accounts', userId), { cashBalance: Math.max(0, currentBalance + delta) });
+    await updateDoc(doc(db, 'users', userId, 'transactions', txId), { reverted: true, updatedAt: Timestamp.now() });
+  } catch (error) {
+    console.error('[v0] Error reverting transaction:', error);
+    throw error;
   }
 }
