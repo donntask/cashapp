@@ -45,9 +45,9 @@ export default function InviteOverlay({ onClose }: InviteOverlayProps) {
   };
 
   return (
-    <div className="absolute inset-0 bg-[#F4F4F6] z-50 flex flex-col">
+    <div className="absolute inset-0 bg-[#F4F4F6] z-50 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between bg-white px-5 pt-12 pb-4 border-b border-[#E5E7EB]">
+      <div className="flex items-center justify-between bg-white px-5 pt-12 pb-4 border-b border-[#E5E7EB] flex-shrink-0">
         <button onClick={onClose} className="w-9 h-9 flex items-center justify-center rounded-full bg-[#F4F4F6] cursor-pointer border-0">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111111" strokeWidth="2.5">
             <polyline points="15 18 9 12 15 6" />
@@ -56,6 +56,9 @@ export default function InviteOverlay({ onClose }: InviteOverlayProps) {
         <span className="text-base font-bold text-[#111111]">Invite Friends</span>
         <div className="w-9" />
       </div>
+
+      {/* Scrollable content */}
+      <div className="flex-1 overflow-y-auto pb-8">
 
       {/* Hero */}
       <div className="bg-[#00D632] mx-4 mt-5 rounded-3xl p-6 flex flex-col items-center">
@@ -126,6 +129,8 @@ export default function InviteOverlay({ onClose }: InviteOverlayProps) {
           ))}
         </div>
       </div>
+
+      </div>{/* end scrollable */}
     </div>
   );
 }

@@ -1,8 +1,10 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { onSnapshot, doc, collection, query, where, orderBy, Timestamp } from 'firebase/firestore';
+import { getDb } from '@/lib/firebase-config';
 import { useAuth } from '@/contexts/auth-context';
-import { sendSupportMessage } from '@/lib/firestore-service';
+import { sendSupportMessage, setTypingIndicator } from '@/lib/firestore-service';
 import { useToast } from '@/contexts/toast-context';
 
 interface Message {
@@ -31,47 +33,69 @@ export default function SupportChatOverlay({ onClose }: SupportChatOverlayProps)
   const [isSending, setIsSending] = useState(false);
   const [agentTyping, setAgentTyping] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const typingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const userName = [authData.firstName, authData.lastName].filter(Boolean).join(' ') || 'User';
 
-  const autoResponses = [
-    "Thanks for reaching out! A support agent will be with you shortly.",
-    "We've received your message and are looking into this for you.",
-    "Our team is reviewing your case. We'll follow up via email as well.",
-    "Could you please provide more details so we can assist you better?",
-    "Your issue has been escalated to our specialist team.",
-  ];
-
   const scrollToBottom = () => bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
 
+  // Real-time messages from Firestore
+  useEffect(() => {
+    if (!userId) return;
+    const db = getDb();
+    const q = query(
+      collection(db, 'supportMessages'),
+      where('uid', '==', userId),
+      orderBy('timestamp', 'asc')
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      const msgs: Message[] = snap.docs.map(d => {
+        const data = d.data();
+        const ts: Timestamp = data.timestamp;
+        return {
+          id: d.id,
+          role: data.role === 'admin' ? 'support' : 'user',
+          text: data.message,
+          time: ts?.toDate?.().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) ?? '',
+        };
+      });
+      setMessages(msgs.length > 0 ? msgs : [WELCOME]);
+    });
+    return () => unsub();
+  }, [userId]);
+
+  // Real-time admin typing indicator
+  useEffect(() => {
+    if (!userId) return;
+    const db = getDb();
+    const unsub = onSnapshot(doc(db, 'users', userId), (snap) => {
+      if (snap.exists()) setAgentTyping(!!snap.data().typing_admin);
+    });
+    return () => unsub();
+  }, [userId]);
+
   useEffect(scrollToBottom, [messages, agentTyping]);
+
+  const handleInputChange = (val: string) => {
+    setInput(val);
+    if (userId) setTypingIndicator(userId, 'user', val.length > 0);
+    if (typingTimeout.current) clearTimeout(typingTimeout.current);
+    typingTimeout.current = setTimeout(() => { if (userId) setTypingIndicator(userId, 'user', false); }, 2000);
+  };
 
   const handleSend = async () => {
     const text = input.trim();
     if (!text || isSending) return;
-
-    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const userMsg: Message = { id: Date.now().toString(), role: 'user', text, time: now };
-    setMessages((prev) => [...prev, userMsg]);
     setInput('');
     setIsSending(true);
-    setAgentTyping(true);
-
+    if (userId) setTypingIndicator(userId, 'user', false);
     try {
       if (userId) await sendSupportMessage(userId, text, userName);
     } catch {
       // non-blocking
-    }
-
-    // Simulate agent reply
-    const delay = 1500 + Math.random() * 1500;
-    setTimeout(() => {
-      const reply = autoResponses[Math.floor(Math.random() * autoResponses.length)];
-      const replyTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      setAgentTyping(false);
-      setMessages((prev) => [...prev, { id: Date.now().toString(), role: 'support', text: reply, time: replyTime }]);
+    } finally {
       setIsSending(false);
-    }, delay);
+    }
   };
 
   return (
@@ -140,7 +164,7 @@ export default function SupportChatOverlay({ onClose }: SupportChatOverlayProps)
             placeholder="Message support..."
             rows={1}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => handleInputChange(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
             style={{ maxHeight: '96px' }}
           />
