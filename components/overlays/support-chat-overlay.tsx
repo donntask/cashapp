@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { onSnapshot, doc, collection, query, where, orderBy, Timestamp } from 'firebase/firestore';
+import { onSnapshot, doc, collection, query, where, Timestamp } from 'firebase/firestore';
 import { getDb } from '@/lib/firebase-config';
 import { useAuth } from '@/contexts/auth-context';
 import { sendSupportMessage, setTypingIndicator } from '@/lib/firestore-service';
@@ -45,20 +45,23 @@ export default function SupportChatOverlay({ onClose }: SupportChatOverlayProps)
     const db = getDb();
     const q = query(
       collection(db, 'supportMessages'),
-      where('uid', '==', userId),
-      orderBy('timestamp', 'asc')
+      where('uid', '==', userId)
     );
     const unsub = onSnapshot(q, (snap) => {
-      const msgs: Message[] = snap.docs.map(d => {
-        const data = d.data();
-        const ts: Timestamp = data.timestamp;
-        return {
-          id: d.id,
-          role: data.role === 'admin' ? 'support' : 'user',
-          text: data.message,
-          time: ts?.toDate?.().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) ?? '',
-        };
-      });
+      const msgs: Message[] = snap.docs
+        .map(d => {
+          const data = d.data();
+          const ts: Timestamp = data.timestamp;
+          return {
+            id: d.id,
+            role: (data.role === 'admin' ? 'support' : 'user') as 'user' | 'support',
+            text: data.message,
+            time: ts?.toDate?.().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) ?? '',
+            _ts: ts?.toMillis?.() ?? 0,
+          };
+        })
+        .sort((a, b) => a._ts - b._ts)
+        .map(({ _ts: _, ...msg }) => msg);
       setMessages(msgs.length > 0 ? msgs : [WELCOME]);
     });
     return () => unsub();
