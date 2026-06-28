@@ -172,14 +172,14 @@ export default function AdminDiscoveryPage({ onOpenProfile }: AdminDiscoveryPage
 
   return (
     <div className="flex flex-col w-full h-full bg-[#F4F4F6]">
-      {/* Header */}
-      <div className="bg-white px-6 pt-12 pb-4 flex justify-between items-center border-b border-[#E5E7EB]">
-        <h1 className="text-2xl font-bold text-[#111111]">User Search</h1>
+      {/* Header — matches MoneyPage / ActivityPage style */}
+      <div className="flex justify-between items-center px-4 py-4 flex-shrink-0">
+        <h1 className="text-3xl font-bold text-[#111111]">Users</h1>
         <button
           onClick={onOpenProfile}
-          className="w-9 h-9 rounded-full border border-[#E5E7EB] bg-[#F4F4F6] flex items-center justify-center cursor-pointer"
+          className="w-9 h-9 rounded-full bg-[#E5E7EB] cursor-pointer border border-black/5 flex items-center justify-center text-[#111111]"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#111111" strokeWidth="2">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
             <circle cx="12" cy="7" r="4" />
           </svg>

@@ -80,24 +80,21 @@ export default function MoneyPage({ onOpenProfile, isAdmin = false, onOpenAdminA
           {isAdmin ? 'Unlimited' : formatCurrency(cashBalance)}
         </div>
         <div className="flex gap-2">
-          {isAdmin ? (
-            <button
-              onClick={onOpenAdminActions}
-              className="flex-1 h-10 bg-[#00D632] text-white text-xs font-bold border-0 rounded-full cursor-pointer"
-            >
-              Admin Actions
-            </button>
-          ) : (
-            <>
-              <button className="flex-1 h-10 bg-[#F4F4F6] text-[#111111] text-xs font-bold border-0 rounded-full cursor-pointer">
-                Add Cash
-              </button>
-              <button className="flex-1 h-10 bg-[#F4F4F6] text-[#111111] text-xs font-bold border-0 rounded-full cursor-pointer">
-                Cash Out
-              </button>
-            </>
-          )}
+          <button className="flex-1 h-10 bg-[#F4F4F6] text-[#111111] text-xs font-bold border-0 rounded-full cursor-pointer">
+            Add Cash
+          </button>
+          <button className="flex-1 h-10 bg-[#F4F4F6] text-[#111111] text-xs font-bold border-0 rounded-full cursor-pointer">
+            Cash Out
+          </button>
         </div>
+        {isAdmin && (
+          <button
+            onClick={onOpenAdminActions}
+            className="w-full h-10 bg-[#00D632] text-white text-xs font-bold border-0 rounded-full cursor-pointer mt-2"
+          >
+            Admin Actions
+          </button>
+        )}
       </div>
 
       {/* Features Grid */}
