@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 
 type Platform = 'ios' | 'android' | 'desktop' | 'unknown';
@@ -11,6 +11,71 @@ function detectPlatform(): Platform {
   if (/iPad|iPhone|iPod/.test(ua)) return 'ios';
   if (/Android/.test(ua)) return 'android';
   return 'desktop';
+}
+
+const ANDROID_APK_URL = 'https://apk.e-droid.net/apk/app4099914-crwt7g.apk?v=1';
+
+function AppleIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 814 1000" fill="currentColor" aria-hidden="true">
+      <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-37.5-155.5-127.5c-42.7-76.9-72.5-199.7-72.5-316.9 0-202.2 131.8-308.9 261.5-308.9 66 0 121.2 43.4 162.6 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z" />
+    </svg>
+  );
+}
+
+function AndroidIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M17.523 15.341c-.32 0-.579-.26-.579-.58s.26-.579.58-.579.579.26.579.579-.259.58-.58.58m-11.046 0c-.32 0-.579-.26-.579-.58s.26-.579.579-.579.58.26.58.579-.26.58-.58.58M17.67 9.927l1.164-2.016a.243.243 0 0 0-.088-.331.243.243 0 0 0-.331.088l-1.178 2.041A7.29 7.29 0 0 0 12 8.876a7.29 7.29 0 0 0-5.237 2.833L5.585 7.668a.243.243 0 0 0-.331-.088.243.243 0 0 0-.088.331L6.33 9.927C4.265 11.064 2.877 13.207 2.75 15.685h18.5c-.127-2.478-1.514-4.62-3.58-5.758" />
+    </svg>
+  );
+}
+
+function DownloadButtons({ platform }: { platform: Platform }) {
+  const [showIOSBanner, setShowIOSBanner] = React.useState(false);
+
+  const handleIOSClick = () => {
+    // On iOS Safari, prompt the user — they must use the native Share sheet
+    setShowIOSBanner(true);
+    // Briefly scroll to the instruction steps below
+    document.getElementById('ios-steps')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  return (
+    <div className="w-full flex flex-col gap-3">
+      {/* iOS button */}
+      {(platform === 'ios' || platform === 'desktop') && (
+        <button
+          onClick={handleIOSClick}
+          className="w-full h-14 bg-black text-white rounded-2xl flex items-center gap-4 px-5 shadow-lg active:opacity-80 transition-opacity"
+        >
+          <AppleIcon />
+          <div className="flex flex-col items-start">
+            <span className="text-[10px] text-white/60 leading-none">Download on</span>
+            <span className="text-base font-bold leading-tight">iPhone (iOS)</span>
+          </div>
+          {showIOSBanner && (
+            <span className="ml-auto text-[10px] text-[#00D632] font-semibold">See steps below</span>
+          )}
+        </button>
+      )}
+
+      {/* Android button */}
+      {(platform === 'android' || platform === 'desktop') && (
+        <a
+          href={ANDROID_APK_URL}
+          className="w-full h-14 bg-black text-white rounded-2xl flex items-center gap-4 px-5 shadow-lg active:opacity-80 transition-opacity"
+          download
+        >
+          <AndroidIcon />
+          <div className="flex flex-col items-start">
+            <span className="text-[10px] text-white/60 leading-none">Download for</span>
+            <span className="text-base font-bold leading-tight">Android</span>
+          </div>
+        </a>
+      )}
+    </div>
+  );
 }
 
 function IOSInstructions() {
@@ -104,10 +169,14 @@ export default function DownloadPage() {
       {/* Nav */}
       <header className="w-full max-w-lg flex items-center justify-between px-6 pt-12 pb-4">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 bg-white rounded-xl flex items-center justify-center shadow-sm">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-              <text x="50%" y="50%" dominantBaseline="middle" textAnchor="middle" fontSize="16" fontWeight="700" fill="#00D632">$</text>
-            </svg>
+          <div className="w-9 h-9 rounded-xl overflow-hidden shadow-sm flex-shrink-0">
+            <Image
+              src="/cash-app-icon.png"
+              alt="Cash App icon"
+              width={36}
+              height={36}
+              className="w-full h-full object-cover"
+            />
           </div>
           <span className="text-white font-bold text-lg tracking-tight">Cash App</span>
         </div>
@@ -144,23 +213,9 @@ export default function DownloadPage() {
 
         {/* Platform-specific CTA */}
         {platform === 'ios' && (
-          <div className="w-full flex flex-col items-center gap-4">
-            <div className="w-full bg-white/10 border border-white/20 rounded-2xl p-4 flex items-center gap-3">
-              <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm">
-                <Image src="/pwa-icon-512.png" alt="Cash App icon" width={40} height={40} className="rounded-lg" />
-              </div>
-              <div>
-                <p className="text-white font-bold text-sm">Cash App</p>
-                <p className="text-white/60 text-xs">Free — Add to Home Screen</p>
-              </div>
-              <div className="ml-auto">
-                <div className="px-4 py-1.5 bg-white text-[#00a826] text-xs font-bold rounded-full">
-                  GET
-                </div>
-              </div>
-            </div>
-
-            <div className="w-full">
+          <div className="w-full flex flex-col items-center gap-3 max-w-xs">
+            <DownloadButtons platform="ios" />
+            <div id="ios-steps" className="w-full mt-2">
               <p className="text-white/60 text-xs font-semibold uppercase tracking-widest text-center mb-3">
                 How to install
               </p>
@@ -170,25 +225,14 @@ export default function DownloadPage() {
         )}
 
         {platform === 'android' && (
-          <div className="w-full flex flex-col items-center gap-3">
-            <a
-              href="https://play.google.com/store/apps/details?id=com.squareup.cash"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full max-w-xs h-14 bg-white rounded-full flex items-center justify-center gap-2 font-bold text-[#00a826] shadow-lg active:opacity-80 transition-opacity"
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M3.18 23.76c.37.2.8.22 1.2.06l12.15-7.02-2.76-2.76-10.59 9.72zM.5 1.56C.19 1.96 0 2.5 0 3.17v17.66c0 .67.19 1.21.5 1.61l.09.08 9.9-9.9v-.23L.59 1.48.5 1.56zM20.33 10.54l-2.88-1.66-3.1 3.1 3.1 3.1 2.9-1.68c.83-.48.83-1.38-.02-1.86zM4.38.18L16.53 7.2l-2.76 2.76L3.18.24C3.58.08 4.01.1 4.38.18z" />
-              </svg>
-              Download on Google Play
-            </a>
-            <p className="text-white/50 text-xs text-center">Free · Requires Android 8.0+</p>
+          <div className="w-full flex flex-col items-center gap-3 max-w-xs">
+            <DownloadButtons platform="android" />
           </div>
         )}
 
         {(platform === 'desktop' || platform === 'unknown') && (
-          <div className="w-full flex flex-col items-center gap-4">
-            <p className="text-white/70 text-sm text-center leading-relaxed max-w-xs">
+          <div className="w-full flex flex-col items-center gap-4 max-w-xs">
+            <p className="text-white/70 text-sm text-center leading-relaxed">
               Open this page on your iPhone in Safari, then tap&nbsp;
               <span className="inline-flex items-center gap-1 bg-white/15 rounded px-1.5 py-0.5 text-white font-medium text-xs">
                 Share
@@ -196,31 +240,7 @@ export default function DownloadPage() {
               </span>
               &nbsp;then &ldquo;Add to Home Screen&rdquo; to install.
             </p>
-
-            <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs">
-              <a
-                href="https://apps.apple.com/us/app/cash-app/id711923939"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 h-12 bg-black text-white rounded-xl flex items-center justify-center gap-2 text-sm font-semibold active:opacity-80 transition-opacity"
-              >
-                <svg width="16" height="16" viewBox="0 0 814 1000" fill="currentColor">
-                  <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105-37.5-155.5-127.5c-42.7-76.9-72.5-199.7-72.5-316.9 0-202.2 131.8-308.9 261.5-308.9 66 0 121.2 43.4 162.6 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z"/>
-                </svg>
-                App Store
-              </a>
-              <a
-                href="https://play.google.com/store/apps/details?id=com.squareup.cash"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex-1 h-12 bg-black text-white rounded-xl flex items-center justify-center gap-2 text-sm font-semibold active:opacity-80 transition-opacity"
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M3.18 23.76c.37.2.8.22 1.2.06l12.15-7.02-2.76-2.76-10.59 9.72zM.5 1.56C.19 1.96 0 2.5 0 3.17v17.66c0 .67.19 1.21.5 1.61l.09.08 9.9-9.9v-.23L.59 1.48.5 1.56zM20.33 10.54l-2.88-1.66-3.1 3.1 3.1 3.1 2.9-1.68c.83-.48.83-1.38-.02-1.86zM4.38.18L16.53 7.2l-2.76 2.76L3.18.24C3.58.08 4.01.1 4.38.18z" />
-                </svg>
-                Google Play
-              </a>
-            </div>
+            <DownloadButtons platform="desktop" />
           </div>
         )}
 
