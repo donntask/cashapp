@@ -46,27 +46,33 @@ export default function AdminDiscoveryPage({ onOpenProfile }: AdminDiscoveryPage
 
     try {
       const db = getDb();
+      console.log('[v0] Admin search: db instance =', typeof db, db);
       const usersRef = collection(db, 'users');
 
       // Build case variants to handle any capitalisation stored at registration
       const rawTerm = searchTerm.replace(/^\$/, '').trim();
+      console.log('[v0] Admin search: rawTerm =', rawTerm);
       const variants = Array.from(new Set([
-        rawTerm,                                                                    // as typed
-        rawTerm.toLowerCase(),                                                      // all lower
-        rawTerm.toUpperCase(),                                                      // all upper
-        rawTerm.charAt(0).toUpperCase() + rawTerm.slice(1).toLowerCase(),           // Title case
-        rawTerm.charAt(0).toLowerCase() + rawTerm.slice(1),                        // camelCase start
+        rawTerm,
+        rawTerm.toLowerCase(),
+        rawTerm.toUpperCase(),
+        rawTerm.charAt(0).toUpperCase() + rawTerm.slice(1).toLowerCase(),
+        rawTerm.charAt(0).toLowerCase() + rawTerm.slice(1),
       ]));
+      console.log('[v0] Admin search: trying exact variants =', variants);
 
       const seenIds = new Set<string>();
       const found: FoundUser[] = [];
 
       for (const v of variants) {
+        console.log('[v0] Admin search: querying cashtag ==', v);
         const snap = await getDocs(query(usersRef, where('cashtag', '==', v)));
+        console.log('[v0] Admin search: variant', v, '-> docs found =', snap.size);
         snap.forEach((docSnap) => {
           if (seenIds.has(docSnap.id)) return;
           seenIds.add(docSnap.id);
           const d = docSnap.data();
+          console.log('[v0] Admin search: matched doc =', { id: docSnap.id, data: d });
           found.push({ uid: docSnap.id, firstName: d.firstName || '', lastName: d.lastName || '', cashtag: d.cashtag || '', email: d.email || '', isAdmin: d.isAdmin || false, isBlocked: d.isBlocked || false });
         });
         if (found.length > 0) break;
@@ -75,26 +81,33 @@ export default function AdminDiscoveryPage({ onOpenProfile }: AdminDiscoveryPage
       // Fallback: range query (handles partial prefix)
       if (found.length === 0) {
         const lower = rawTerm.toLowerCase();
+        console.log('[v0] Admin search: exact match failed, trying range query lower=', lower);
         const snap = await getDocs(query(usersRef, where('cashtag', '>=', lower), where('cashtag', '<=', lower + '\uf8ff')));
+        console.log('[v0] Admin search: lowercase range -> docs =', snap.size);
         snap.forEach((docSnap) => {
           if (seenIds.has(docSnap.id)) return;
           seenIds.add(docSnap.id);
           const d = docSnap.data();
+          console.log('[v0] Admin search: range matched doc =', { id: docSnap.id, cashtag: d.cashtag });
           found.push({ uid: docSnap.id, firstName: d.firstName || '', lastName: d.lastName || '', cashtag: d.cashtag || '', email: d.email || '', isAdmin: d.isAdmin || false, isBlocked: d.isBlocked || false });
         });
         // Also try Title-case prefix
         if (found.length === 0) {
           const titleTerm = rawTerm.charAt(0).toUpperCase() + rawTerm.slice(1).toLowerCase();
+          console.log('[v0] Admin search: trying Title-case range query titleTerm=', titleTerm);
           const snap2 = await getDocs(query(usersRef, where('cashtag', '>=', titleTerm), where('cashtag', '<=', titleTerm + '\uf8ff')));
+          console.log('[v0] Admin search: Title-case range -> docs =', snap2.size);
           snap2.forEach((docSnap) => {
             if (seenIds.has(docSnap.id)) return;
             seenIds.add(docSnap.id);
             const d = docSnap.data();
+            console.log('[v0] Admin search: title-range matched doc =', { id: docSnap.id, cashtag: d.cashtag });
             found.push({ uid: docSnap.id, firstName: d.firstName || '', lastName: d.lastName || '', cashtag: d.cashtag || '', email: d.email || '', isAdmin: d.isAdmin || false, isBlocked: d.isBlocked || false });
           });
         }
       }
 
+      console.log('[v0] Admin search: final results count =', found.length, found);
       if (found.length === 0) {
         addToast('No users found for that cashtag', 'error');
       }
