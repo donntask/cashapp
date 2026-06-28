@@ -35,7 +35,7 @@ Admin instruction: ${prompt}
 
 Write the email body now:`;
 
-    console.log('[v0] generate-email calling OpenRouter with model deepseek/deepseek-v4-flash for:', recipientName);
+    console.log('[v0] generate-email calling OpenRouter with model nousresearch/hermes-3-llama-3.1-405b for:', recipientName);
     const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -45,7 +45,7 @@ Write the email body now:`;
         'X-Title': 'CashApp Admin',
       },
       body: JSON.stringify({
-        model: 'deepseek/deepseek-v4-flash',
+        model: 'nousresearch/hermes-3-llama-3.1-405b',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage },

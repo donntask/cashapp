@@ -13,6 +13,8 @@ import PaymentFlow from './overlays/payment-flow';
 import BottomNavbar from './bottom-navbar';
 import AuthFlow from './auth/auth-flow';
 import { useAuth } from '@/contexts/auth-context';
+import { userHasPin } from '@/lib/firestore-service';
+import SupportChatOverlay from './overlays/support-chat-overlay';
 
 type Tab = 'money' | 'card' | 'paypad' | 'search' | 'activity';
 
@@ -29,6 +31,19 @@ export default function CashApp() {
   const [globalTransactionType, setGlobalTransactionType] = useState<'Pay' | 'Request'>('Pay');
   const [screenHistory, setScreenHistory] = useState<Array<{ type: string; data?: any }>>([]);
   const [selectedAccountSetting, setSelectedAccountSetting] = useState<string | null>(null);
+  const [showSupport, setShowSupport] = useState(false);
+
+  // Auto-open support chat if redirected from email CTA
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('support') === '1') {
+        setShowSupport(true);
+        // Clean the URL
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     if (sessionPersisted || isAuthenticated) {
@@ -158,6 +173,9 @@ export default function CashApp() {
       )}
       {showSecurityPrivacy && (
         <SecurityPrivacyOverlay isOpen={showSecurityPrivacy} onClose={() => setShowSecurityPrivacy(false)} />
+      )}
+      {showSupport && (
+        <SupportChatOverlay onClose={() => setShowSupport(false)} />
       )}
       {showPaymentFlow && (
         <PaymentFlow

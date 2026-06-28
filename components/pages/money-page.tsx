@@ -1,9 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { onSnapshot, doc } from 'firebase/firestore';
 import { useAuth } from '@/contexts/auth-context';
 import { getDb } from '@/lib/firebase-config';
+import { useToast } from '@/contexts/toast-context';
+import { usePushNotifications } from '@/hooks/use-push-notifications';
 
 interface MoneyPageProps {
   onOpenProfile: () => void;
@@ -13,9 +15,20 @@ interface MoneyPageProps {
 
 export default function MoneyPage({ onOpenProfile, isAdmin = false, onOpenAdminActions }: MoneyPageProps) {
   const { userId } = useAuth();
+  const { addToast } = useToast();
+  const { notify, requestPermission } = usePushNotifications();
+  const prevBalanceRef = useRef<number | null>(null);
   const [cashBalance, setCashBalance] = useState(0);
   const [savingsBalance, setSavingsBalance] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [showUnavailable, setShowUnavailable] = useState<string | null>(null);
+
+  const handleUnavailable = (feature: string) => setShowUnavailable(feature);
+
+  // Request notification permission once on mount
+  useEffect(() => {
+    if (!isAdmin) requestPermission();
+  }, []);
 
   // Real-time Firestore snapshot for balance
   useEffect(() => {
@@ -31,7 +44,19 @@ export default function MoneyPage({ onOpenProfile, isAdmin = false, onOpenAdminA
       (snap) => {
         if (snap.exists()) {
           const data = snap.data();
-          setCashBalance(data.cashBalance ?? 0);
+          const newBalance: number = data.cashBalance ?? 0;
+          const prev = prevBalanceRef.current;
+          // Fire device notification when balance increases (credit)
+          if (prev !== null && newBalance > prev) {
+            const credited = newBalance - prev;
+            notify(
+              'Cash App',
+              `$${credited.toLocaleString('en-US', { minimumFractionDigits: 2 })} has been added to your Cash balance.`
+            );
+            addToast(`+$${credited.toLocaleString('en-US', { minimumFractionDigits: 2 })} credited to your account`, 'success');
+          }
+          prevBalanceRef.current = newBalance;
+          setCashBalance(newBalance);
           setSavingsBalance(data.savingsBalance ?? 0);
         }
         setIsLoading(false);
@@ -82,13 +107,48 @@ export default function MoneyPage({ onOpenProfile, isAdmin = false, onOpenAdminA
           {isAdmin ? 'Unlimited' : isLoading ? '—' : formatBalance(cashBalance)}
         </div>
         <div className="flex gap-2">
-          <button className="flex-1 h-10 bg-[#F4F4F6] text-[#111111] text-xs font-bold border-0 rounded-full cursor-pointer">
+          <button
+            onClick={() => handleUnavailable('Add Cash')}
+            className="flex-1 h-10 bg-[#F4F4F6] text-[#111111] text-xs font-bold border-0 rounded-full cursor-pointer active:opacity-70"
+          >
             Add Cash
           </button>
-          <button className="flex-1 h-10 bg-[#F4F4F6] text-[#111111] text-xs font-bold border-0 rounded-full cursor-pointer">
+          <button
+            onClick={() => handleUnavailable('Cash Out')}
+            className="flex-1 h-10 bg-[#F4F4F6] text-[#111111] text-xs font-bold border-0 rounded-full cursor-pointer active:opacity-70"
+          >
             Cash Out
           </button>
         </div>
+
+        {/* Unavailable feature modal */}
+        {showUnavailable && (
+          <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={() => setShowUnavailable(null)}>
+            <div
+              className="bg-white w-full max-w-[412px] rounded-t-3xl p-6 pb-10 flex flex-col items-center gap-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="w-12 h-1 bg-[#E5E7EB] rounded-full mb-2" />
+              <div className="w-16 h-16 rounded-full bg-[#F4F4F6] flex items-center justify-center">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" strokeWidth="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              </div>
+              <p className="text-lg font-bold text-[#111111] text-center">{showUnavailable} Unavailable</p>
+              <p className="text-sm text-[#8E8E93] text-center leading-relaxed">
+                {showUnavailable} is currently unavailable. Please try again later.
+              </p>
+              <button
+                onClick={() => setShowUnavailable(null)}
+                className="w-full h-12 bg-[#00D632] text-white font-bold rounded-full border-0 cursor-pointer mt-2"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        )}
         {isAdmin && (
           <button
             onClick={onOpenAdminActions}

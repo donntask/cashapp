@@ -268,3 +268,59 @@ export async function updateUserProfile(uid: string, updates: Partial<UserProfil
     throw error;
   }
 }
+
+// PIN stored as a hashed string in users/{uid}/pin field
+export async function saveUserPin(uid: string, pin: string): Promise<void> {
+  const db = getDb();
+  try {
+    await updateDoc(doc(db, 'users', uid), { pin, updatedAt: Timestamp.now() });
+  } catch (error) {
+    console.error('[v0] Error saving PIN:', error);
+    throw error;
+  }
+}
+
+export async function getUserPin(uid: string): Promise<string | null> {
+  const db = getDb();
+  try {
+    const snap = await getDoc(doc(db, 'users', uid));
+    if (!snap.exists()) return null;
+    return snap.data().pin ?? null;
+  } catch (error) {
+    console.error('[v0] Error getting PIN:', error);
+    return null;
+  }
+}
+
+export async function userHasPin(uid: string): Promise<boolean> {
+  const pin = await getUserPin(uid);
+  return typeof pin === 'string' && pin.length === 4;
+}
+
+// Support messages stored in supportMessages collection
+export async function sendSupportMessage(uid: string, message: string, userName: string): Promise<void> {
+  const db = getDb();
+  try {
+    await addDoc(collection(db, 'supportMessages'), {
+      uid,
+      userName,
+      message,
+      timestamp: Timestamp.now(),
+      status: 'open',
+      role: 'user',
+    });
+  } catch (error) {
+    console.error('[v0] Error sending support message:', error);
+    throw error;
+  }
+}
+
+export async function getInviteCount(uid: string): Promise<number> {
+  const db = getDb();
+  try {
+    const snap = await getDoc(doc(db, 'users', uid));
+    return snap.exists() ? (snap.data().inviteCount ?? 0) : 0;
+  } catch {
+    return 0;
+  }
+}
