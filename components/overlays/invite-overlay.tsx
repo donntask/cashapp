@@ -14,9 +14,14 @@ export default function InviteOverlay({ onClose }: InviteOverlayProps) {
   const { addToast } = useToast();
   const [inviteCount, setInviteCount] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [origin, setOrigin] = useState('');
 
-  const inviteLink = `https://cash.app/app/${authData.cashtag || 'user'}`;
+  const inviteLink = `${origin}/app/${authData.cashtag || 'user'}`;
   const reward = inviteCount * 15;
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   useEffect(() => {
     if (!userId) return;
