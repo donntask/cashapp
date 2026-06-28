@@ -5,13 +5,18 @@ import { useAuth } from '@/contexts/auth-context';
 
 interface EmailRequiredStepProps {
   onNext: () => void;
+  isLoading?: boolean;
 }
 
-export default function EmailRequiredStep({ onNext }: EmailRequiredStepProps) {
+export default function EmailRequiredStep({ onNext, isLoading = false }: EmailRequiredStepProps) {
   const { authData, updateAuthData } = useAuth();
 
   const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     updateAuthData({ email: e.target.value });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && authData.email.trim() && !isLoading) onNext();
   };
 
   return (
@@ -27,7 +32,11 @@ export default function EmailRequiredStep({ onNext }: EmailRequiredStepProps) {
             type="email"
             value={authData.email}
             onChange={handleEmailChange}
+            onKeyDown={handleKeyDown}
             placeholder="name@example.com"
+            autoCapitalize="none"
+            autoCorrect="off"
+            autoComplete="email"
             className="w-full border-none outline-none text-2xl text-gray-900 bg-transparent placeholder-gray-300"
           />
         </div>
@@ -36,10 +45,10 @@ export default function EmailRequiredStep({ onNext }: EmailRequiredStepProps) {
       <div className="mt-auto">
         <button
           onClick={onNext}
-          disabled={!authData.email.trim()}
+          disabled={!authData.email.trim() || isLoading}
           className="w-full px-7 py-3 rounded-full text-base font-semibold border-none cursor-pointer bg-[#00D632] text-white hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Next
+          {isLoading ? 'Checking...' : 'Next'}
         </button>
       </div>
     </>

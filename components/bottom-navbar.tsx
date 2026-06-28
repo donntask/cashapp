@@ -1,33 +1,75 @@
 'use client';
 
+import { useEffect, useState, useCallback } from 'react';
+import { useAuth } from '@/contexts/auth-context';
+import { getUserAccount } from '@/lib/firestore-service';
+
 interface BottomNavbarProps {
-  activeTab: 'money' | 'paypad' | 'activity';
-  onTabChange: (tab: 'money' | 'paypad' | 'activity') => void;
+  activeTab: 'money' | 'card' | 'paypad' | 'search' | 'activity';
+  onTabChange: (tab: 'money' | 'card' | 'paypad' | 'search' | 'activity') => void;
   isPayPadActive: boolean;
   canGoBack?: boolean;
   onGoBack?: () => void;
-  isAdmin?: boolean;
 }
 
-export default function BottomNavbar({ activeTab, onTabChange, isPayPadActive, canGoBack = false, onGoBack, isAdmin = false }: BottomNavbarProps) {
-  const navStyle = isPayPadActive
-    ? 'bg-[#00D632] border-t-[#00b029]'
-    : 'bg-white border-t-[#E5E7EB]';
+function abbreviate(n: number): string {
+  if (n >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(1).replace(/\.0$/, '')}b`;
+  if (n >= 1_000_000)     return `$${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}m`;
+  if (n >= 1_000)         return `$${(n / 1_000).toFixed(1).replace(/\.0$/, '')}k`;
+  return `$${n.toFixed(2)}`;
+}
 
-  const getNavItemColor = (isActive: boolean) => {
-    if (isPayPadActive) {
-      return isActive ? 'text-white' : 'text-white/60';
-    }
-    return isActive ? 'text-[#111111]' : 'text-[#A1A1AA]';
+export default function BottomNavbar({
+  activeTab,
+  onTabChange,
+  isPayPadActive,
+  canGoBack = false,
+  onGoBack,
+}: BottomNavbarProps) {
+  const { userId, isAdmin } = useAuth();
+  const [balance, setBalance] = useState<number | null>(null);
+
+  const loadBalance = useCallback(async () => {
+    if (isAdmin) { setBalance(null); return; }
+    if (!userId) return;
+    try {
+      const account = await getUserAccount(userId);
+      if (account) setBalance(account.cashBalance ?? 0);
+    } catch {}
+  }, [userId, isAdmin]);
+
+  useEffect(() => {
+    loadBalance();
+    // Refresh on tab focus so balance updates after a payment
+    const handler = () => loadBalance();
+    window.addEventListener('focus', handler);
+    return () => window.removeEventListener('focus', handler);
+  }, [loadBalance]);
+
+  // Also refresh whenever user navigates back to money tab
+  useEffect(() => {
+    if (activeTab === 'money' || activeTab === 'activity') loadBalance();
+  }, [activeTab, loadBalance]);
+
+  const navBg = isPayPadActive ? 'bg-[#00D632] border-t-[#00b029]' : 'bg-white border-t-[#E5E7EB]';
+
+  const color = (tab: string) => {
+    const isActive = activeTab === tab;
+    if (isPayPadActive) return isActive ? 'text-white' : 'text-white/55';
+    return isActive ? 'text-[#111111]' : 'text-[#B3B3B7]';
   };
 
-  // Show back button instead of navbar when canGoBack is true
+  const dot = (tab: string) =>
+    activeTab === tab ? (
+      <div className={`absolute bottom-1 w-1 h-1 rounded-full ${isPayPadActive ? 'bg-white' : 'bg-[#111111]'}`} />
+    ) : null;
+
   if (canGoBack) {
     return (
       <div className="h-[70px] bg-white border-t border-[#E5E7EB] flex items-center px-6 z-50">
         <button
           onClick={onGoBack}
-          className="flex items-center gap-2 text-[#111111] font-semibold cursor-pointer bg-none border-0 text-base"
+          className="flex items-center gap-2 text-[#111111] font-semibold cursor-pointer bg-transparent border-0 text-base"
         >
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
             <path d="M15 18l-6-6 6-6" />
@@ -38,78 +80,70 @@ export default function BottomNavbar({ activeTab, onTabChange, isPayPadActive, c
     );
   }
 
+  const moneyLabel = isAdmin ? '$' : balance !== null ? abbreviate(balance) : '$';
+
   return (
-    <div className={`h-[70px] ${navStyle} border-t flex justify-around items-center z-50 pb-1`}>
-      {/* Money Tab */}
+    <div className={`h-[70px] ${navBg} border-t flex justify-around items-center z-50 pb-1`}>
+
+      {/* Money */}
       <button
         onClick={() => onTabChange('money')}
-        className={`flex flex-col items-center justify-center flex-1 h-full cursor-pointer ${getNavItemColor(activeTab === 'money')} relative`}
+        className={`flex flex-col items-center justify-center flex-1 h-full cursor-pointer relative gap-0.5 ${color('money')}`}
       >
-        <span className="text-lg font-bold">$0</span>
-        {activeTab === 'money' && (
-          <div
-            className={`absolute bottom-1 w-1 h-1 rounded-full ${isPayPadActive ? 'bg-white' : 'bg-[#111111]'}`}
-          />
-        )}
+        <span className="text-sm font-bold leading-none tabular-nums">{moneyLabel}</span>
+        {dot('money')}
       </button>
 
-      {/* Card Tab */}
+      {/* Card */}
       <button
-        onClick={() => onTabChange('money')}
-        className={`flex flex-col items-center justify-center flex-1 h-full cursor-pointer ${getNavItemColor(false)}`}
+        onClick={() => onTabChange('card')}
+        className={`flex flex-col items-center justify-center flex-1 h-full cursor-pointer relative ${color('card')}`}
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
           <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
           <line x1="1" y1="10" x2="23" y2="10" />
         </svg>
+        {dot('card')}
       </button>
 
-
-
-      {/* Pay Pad Tab - Featured */}
+      {/* PayPad — centre featured button */}
       <button
         onClick={() => onTabChange('paypad')}
-        className={`flex flex-col items-center justify-center flex-1 h-full cursor-pointer ${getNavItemColor(activeTab === 'paypad')} relative`}
+        className={`flex flex-col items-center justify-center flex-1 h-full cursor-pointer relative ${color('paypad')}`}
       >
-        <div className="w-16 h-16 rounded-full border-2 border-[#00D632] bg-[#00D632] flex items-center justify-center">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3.5">
+        <div className="w-14 h-14 rounded-full bg-[#00D632] border-2 border-[#00D632] flex items-center justify-center">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3">
             <line x1="12" y1="1" x2="12" y2="23" />
             <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
           </svg>
         </div>
-        {activeTab === 'paypad' && (
-          <div
-            className={`absolute bottom-1 w-1 h-1 rounded-full ${isPayPadActive ? 'bg-white' : 'bg-[#111111]'}`}
-          />
-        )}
+        {dot('paypad')}
       </button>
 
-      {/* Search Tab */}
+      {/* Search / Discovery */}
       <button
-        onClick={() => onTabChange('activity')}
-        className={`flex flex-col items-center justify-center flex-1 h-full cursor-pointer ${getNavItemColor(activeTab === 'activity')}`}
+        onClick={() => onTabChange('search')}
+        className={`flex flex-col items-center justify-center flex-1 h-full cursor-pointer relative ${color('search')}`}
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
           <circle cx="11" cy="11" r="8" />
           <line x1="21" y1="21" x2="16.65" y2="16.65" />
         </svg>
+        {dot('search')}
       </button>
 
-      {/* Activity Tab */}
+      {/* Activity */}
       <button
         onClick={() => onTabChange('activity')}
-        className={`flex flex-col items-center justify-center flex-1 h-full cursor-pointer ${getNavItemColor(activeTab === 'activity')} relative`}
+        className={`flex flex-col items-center justify-center flex-1 h-full cursor-pointer relative ${color('activity')}`}
       >
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
           <circle cx="12" cy="12" r="10" />
           <polyline points="12 6 12 12 16 14" />
         </svg>
-        {activeTab === 'activity' && (
-          <div
-            className={`absolute bottom-1 w-1 h-1 rounded-full ${isPayPadActive ? 'bg-white' : 'bg-[#111111]'}`}
-          />
-        )}
+        {dot('activity')}
       </button>
+
     </div>
   );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useAuth } from '@/contexts/auth-context';
 
 interface UserData {
   firstName: string;
@@ -18,6 +19,7 @@ interface ProfileOverlayProps {
 }
 
 export default function ProfileOverlay({ onClose, onSelectSetting, onOpenSettings }: ProfileOverlayProps) {
+  const { resetAuth, authData } = useAuth();
   const [user, setUser] = useState<UserData | null>(null);
   const [loadingSettingName, setLoadingSettingName] = useState<string | null>(null);
 
@@ -42,18 +44,19 @@ export default function ProfileOverlay({ onClose, onSelectSetting, onOpenSetting
   };
 
   useEffect(() => {
-    try {
-      const appData = localStorage.getItem('cashapp_app_data');
-      if (appData) {
-        const data = JSON.parse(appData);
-        setUser(data.user || null);
-      }
-    } catch (error) {
-      console.error('[v0] Failed to load user data:', error);
+    if (authData.firstName) {
+      setUser({
+        firstName: authData.firstName,
+        lastName: authData.lastName,
+        cashtag: authData.cashtag,
+        phoneNumber: authData.contact,
+        email: authData.email,
+        zipCode: authData.zipCode,
+      });
     }
-  }, []);
+  }, [authData]);
 
-  const displayName = user ? `${user.firstName}${user.lastName}`.slice(0, 12) : 'User';
+  const displayName = user ? `${user.firstName} ${user.lastName}`.trim().slice(0, 16) : 'User';
   const cashtag = user?.cashtag || 'user';
   const phoneOrEmail = user?.phoneNumber || user?.email || 'Add contact info';
 
@@ -301,13 +304,8 @@ export default function ProfileOverlay({ onClose, onSelectSetting, onOpenSetting
       <div className="px-4 mt-4 mb-6">
         <button
           onClick={() => {
-            try {
-              localStorage.removeItem('cashapp_auth_data');
-              localStorage.removeItem('cashapp_app_data');
-              window.location.href = '/';
-            } catch (error) {
-              console.error('[v0] Failed to log out:', error);
-            }
+            resetAuth();
+            window.location.href = '/';
           }}
           className="h-12 w-full bg-[#FF3B30] text-white font-bold text-base rounded-full border-0 cursor-pointer hover:bg-[#E63028] active:bg-[#D41F1F] truncate"
         >

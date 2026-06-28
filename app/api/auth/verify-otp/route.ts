@@ -14,21 +14,23 @@ export async function POST(request: NextRequest) {
 
     // Verify OTP using the store
     const storedOTPData = otpStore.getOTP(email);
-    const isValidOTP = storedOTPData && storedOTPData.otp === otp;
 
-    if (!isValidOTP) {
-      if (!storedOTPData) {
-        return NextResponse.json(
-          { error: 'No OTP found for this email. Please request a new code.' },
-          { status: 400 }
-        );
-      }
-      
+    if (!storedOTPData) {
+      return NextResponse.json(
+        { error: 'No OTP found for this email. Please request a new code.' },
+        { status: 400 }
+      );
+    }
+
+    if (storedOTPData.otp !== otp) {
       return NextResponse.json(
         { error: 'Invalid OTP. Please try again.' },
         { status: 400 }
       );
     }
+
+    // Delete OTP after successful verification
+    otpStore.deleteOTP(email);
 
     return NextResponse.json({
       success: true,

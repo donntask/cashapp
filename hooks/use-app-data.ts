@@ -1,43 +1,60 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { AppData, DEFAULT_APP_DATA } from '@/types/app-data';
+import { useEffect, useState, useCallback } from 'react';
+import { getUserAccount, getUserProfile } from '@/lib/firestore-service';
+import { useAuth } from '@/contexts/auth-context';
 
-const STORAGE_KEY = 'cashapp_app_data';
+export interface AppData {
+  cashBalance: number;
+  savingsBalance: number;
+  firstName: string;
+  lastName: string;
+  cashtag: string;
+  email: string;
+}
+
+const DEFAULT_APP_DATA: AppData = {
+  cashBalance: 0,
+  savingsBalance: 0,
+  firstName: '',
+  lastName: '',
+  cashtag: '',
+  email: '',
+};
 
 export function useAppData() {
+  const { userId } = useAuth();
   const [data, setData] = useState<AppData>(DEFAULT_APP_DATA);
   const [isLoaded, setIsLoaded] = useState(false);
 
-  // Load data from localStorage on mount
+  const loadData = useCallback(async () => {
+    if (!userId) {
+      setIsLoaded(true);
+      return;
+    }
+    try {
+      const [account, profile] = await Promise.all([
+        getUserAccount(userId),
+        getUserProfile(userId),
+      ]);
+      setData({
+        cashBalance: account?.cashBalance ?? 0,
+        savingsBalance: account?.savingsBalance ?? 0,
+        firstName: profile?.firstName ?? '',
+        lastName: profile?.lastName ?? '',
+        cashtag: profile?.cashtag ?? '',
+        email: profile?.email ?? '',
+      });
+    } catch (error) {
+      console.error('[v0] useAppData: failed to load from Firestore:', error);
+    } finally {
+      setIsLoaded(true);
+    }
+  }, [userId]);
+
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        setData(parsed);
-      }
-      setIsLoaded(true);
-    } catch (error) {
-      console.error('[v0] Failed to load app data from localStorage:', error);
-      setIsLoaded(true);
-    }
-  }, []);
+    loadData();
+  }, [loadData]);
 
-  // Save data to localStorage whenever it changes
-  const saveData = (newData: AppData) => {
-    try {
-      const updated = { ...newData, lastUpdated: Date.now() };
-      setData(updated);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    } catch (error) {
-      console.error('[v0] Failed to save app data to localStorage:', error);
-    }
-  };
-
-  return {
-    data,
-    isLoaded,
-    saveData,
-  };
+  return { data, isLoaded, reload: loadData };
 }

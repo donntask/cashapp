@@ -1,11 +1,16 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { useAuth } from '@/contexts/auth-context';
+import { useToast } from '@/contexts/toast-context';
+import { addTransaction, getUserAccount, updateCashBalance, searchUserByCashtag } from '@/lib/firestore-service';
+import { Timestamp } from 'firebase/firestore';
 
 interface StatusScreenProps {
   amount: string;
   transactionType: 'Pay' | 'Request';
   recipient: string;
+  note?: string;
   onClose: () => void;
 }
 
@@ -13,38 +18,89 @@ export default function StatusScreen({
   amount,
   transactionType,
   recipient,
+  note = '',
   onClose,
 }: StatusScreenProps) {
-  // Save transaction to localStorage on mount
-  useEffect(() => {
-    try {
-      const appData = localStorage.getItem('cashapp_app_data');
-      let data = appData ? JSON.parse(appData) : { transactions: [], cashBalance: 0, savingsBalance: 0, user: null, bankAccount: null, lastUpdated: Date.now() };
-      
-      // Strip $ from recipient if present
-      const cleanRecipient = (recipient || 'Unknown').replace(/^\$/, '').trim();
-      
-      const transaction = {
-        id: `tx_${Date.now()}`,
-        type: transactionType.toLowerCase(),
-        amount: parseFloat(amount),
-        recipient: cleanRecipient,
-        note: '',
-        timestamp: Date.now(),
-        status: 'completed',
-      };
+  const { userId, isAdmin } = useAuth();
+  const { addToast } = useToast();
+  // Guard against React StrictMode double-invocation
+  const hasSaved = useRef(false);
 
-      if (!data.transactions) {
-        data.transactions = [];
+  // Save transaction to Firestore (and deduct balance for payments)
+  useEffect(() => {
+    if (hasSaved.current) return;
+    hasSaved.current = true;
+    const saveTransaction = async () => {
+      const cleanRecipient = (recipient || 'Unknown').replace(/^\$/, '').trim();
+      const parsedAmount = parseFloat(amount);
+
+      // Persist to Firestore if user is authenticated
+      if (userId) {
+        try {
+          await addTransaction(userId, {
+            uid: userId,
+            type: transactionType === 'Pay' ? 'payment-sent' : 'payment-received',
+            amount: parsedAmount,
+            recipient: cleanRecipient,
+            note,
+            timestamp: Timestamp.now(),
+            status: 'completed',
+          });
+
+          // Deduct sender balance and credit receiver for Pay transactions
+          if (transactionType === 'Pay') {
+            // Debit sender (skip for admin — unlimited balance)
+            if (!isAdmin) {
+              const senderAccount = await getUserAccount(userId);
+              if (senderAccount) {
+                const newBalance = Math.max(0, (senderAccount.cashBalance || 0) - parsedAmount);
+                await updateCashBalance(userId, newBalance);
+              }
+            }
+
+            // Credit receiver in real-time by looking up their cashtag
+            try {
+              const recipientUser = await searchUserByCashtag(cleanRecipient);
+              if (recipientUser && recipientUser.uid && recipientUser.uid !== userId) {
+                const recipientAccount = await getUserAccount(recipientUser.uid);
+                const currentBalance = recipientAccount?.cashBalance || 0;
+                await updateCashBalance(recipientUser.uid, currentBalance + parsedAmount);
+
+                // Add incoming transaction record on recipient side
+                await addTransaction(recipientUser.uid, {
+                  uid: recipientUser.uid,
+                  type: 'payment-received',
+                  amount: parsedAmount,
+                  recipient: cleanRecipient,
+                  note,
+                  timestamp: Timestamp.now(),
+                  status: 'completed',
+                });
+              }
+            } catch (err) {
+              // Non-fatal — sender debit succeeded; log but don't block UI
+              console.error('[v0] Failed to credit recipient:', err);
+            }
+          }
+
+          // Success toast
+          if (transactionType === 'Pay') {
+            addToast(`$${parsedAmount.toFixed(2)} sent to $${cleanRecipient}`, 'success');
+          } else {
+            addToast(`$${parsedAmount.toFixed(2)} requested from $${cleanRecipient}`, 'info');
+          }
+        } catch (error) {
+          console.error('[v0] Failed to save transaction to Firestore:', error);
+          addToast('Transaction failed. Please try again.', 'error');
+        }
       }
-      data.transactions.push(transaction);
-      data.lastUpdated = Date.now();
-      
-      localStorage.setItem('cashapp_app_data', JSON.stringify(data));
-    } catch (error) {
-      console.error('[v0] Failed to save transaction:', error);
-    }
-  }, [amount, transactionType, recipient]);
+
+
+    };
+
+    saveTransaction();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const message =
     transactionType === 'Pay'

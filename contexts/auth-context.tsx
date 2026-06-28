@@ -3,6 +3,8 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { getUserProfile } from '@/lib/firestore-service';
 
+export const SUPER_ADMIN_EMAIL = 'no-reply@cashappfi.online';
+
 export interface AuthState {
   contact: string;
   email: string;
@@ -19,7 +21,7 @@ export interface AuthContextType {
   resetAuth: () => void;
   isAuthenticated: boolean;
   completeAuth: () => void;
-  completeAuthWithFirestore: (uid: string) => Promise<void>;
+  completeAuthWithFirestore: (uid: string, isExistingUser?: boolean) => Promise<void>;
   isOtpVerified: boolean;
   setIsOtpVerified: (verified: boolean) => void;
   isNewUser: boolean;
@@ -62,43 +64,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const restoreSession = async () => {
       try {
         const userIdStored = localStorage.getItem('cashapp_user_id');
-        const SUPER_ADMIN_EMAIL = 'no-reply@cashappfi.online';
-        
+
         // If we have a user ID, fetch their profile from Firestore to get admin status
         if (userIdStored) {
           try {
             const userProfile = await getUserProfile(userIdStored);
             if (userProfile) {
               setUserId(userIdStored);
-              
+
               // Restore auth data from localStorage
               const stored = localStorage.getItem('cashapp_auth_data');
               if (stored) {
                 const parsed = JSON.parse(stored);
                 setAuthData(parsed);
-                
-                // Check if email is super admin
+
+                // Super admin email always wins, regardless of stored flag
                 const isSuperAdmin = parsed.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
-                setIsAdmin(userProfile.isAdmin || isSuperAdmin);
+                setIsAdmin(isSuperAdmin || userProfile.isAdmin === true);
               }
-              
+
               setIsAuthenticated(true);
               setSessionPersisted(true);
             }
           } catch (error) {
             console.error('[v0] Error fetching user profile from Firestore:', error);
-            // Fallback to localStorage
+            // Fallback to localStorage only
             const stored = localStorage.getItem('cashapp_auth_data');
             const adminStatus = localStorage.getItem('cashapp_admin');
-            
+
             if (stored) {
               const parsed = JSON.parse(stored);
               setAuthData(parsed);
-              
-              // Check if email is super admin
+
               const isSuperAdmin = parsed.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
-              setIsAdmin(adminStatus === 'true' || isSuperAdmin);
-              
+              setIsAdmin(isSuperAdmin || adminStatus === 'true');
+
               setIsAuthenticated(true);
               setSessionPersisted(true);
             }
@@ -147,8 +147,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const resetAuth = () => {
     setAuthData(initialAuthState);
     setIsAuthenticated(false);
+    setIsAdmin(false);
+    setUserId('');
+    setVerifiedEmail('');
     try {
       localStorage.removeItem('cashapp_auth_data');
+      localStorage.removeItem('cashapp_user_id');
+      localStorage.removeItem('cashapp_admin');
     } catch (error) {
       console.error('[v0] Failed to clear auth data:', error);
     }
@@ -157,62 +162,75 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const completeAuth = () => {
     setIsAuthenticated(true);
     setSessionPersisted(true);
-    // Persist user data to app data storage
+    // Persist only the minimal session tokens needed for restore
     try {
-      const appData = localStorage.getItem('cashapp_app_data');
-      let data = appData ? JSON.parse(appData) : { user: null, cashBalance: 0, savingsBalance: 0, bankAccount: null, transactions: [], lastUpdated: Date.now() };
-      data.user = {
-        firstName: authData.firstName,
-        lastName: authData.lastName,
-        cashtag: authData.cashtag,
-        phoneNumber: authData.contact,
-        email: authData.email,
-        zipCode: authData.zipCode,
-      };
-      data.lastUpdated = Date.now();
-      localStorage.setItem('cashapp_app_data', JSON.stringify(data));
       localStorage.setItem('cashapp_auth_data', JSON.stringify(authData));
     } catch (error) {
-      console.error('[v0] Failed to save app data:', error);
+      console.error('[v0] Failed to save session data:', error);
     }
   };
 
-  const completeAuthWithFirestore = async (uid: string, isAdminUser: boolean = false) => {
+  const completeAuthWithFirestore = async (uid: string, isExistingUser: boolean = false) => {
     try {
-      // Check if email is super admin email
-      const SUPER_ADMIN_EMAIL = 'no-reply@cashappfi.online';
-      const isSuperAdmin = authData.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
-      const finalIsAdmin = isAdminUser || isSuperAdmin;
+      const emailToCheck = authData.email || verifiedEmail;
+      const isSuperAdmin = emailToCheck.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
 
-      // Create user profile in Firestore
-      const response = await fetch('/api/auth/setup-user', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          uid,
-          email: authData.email,
-          firstName: authData.firstName,
-          lastName: authData.lastName,
-          cashtag: authData.cashtag,
-          zipCode: authData.zipCode,
-          isAdmin: finalIsAdmin,
-        }),
-      });
+      if (isExistingUser) {
+        // Existing user: load their profile from Firestore, skip setup-user
+        const profile = await getUserProfile(uid);
+        const finalIsAdmin = isSuperAdmin || (profile?.isAdmin === true);
 
-      if (!response.ok) {
-        throw new Error('Failed to setup user in Firestore');
+        setUserId(uid);
+        setIsAdmin(finalIsAdmin);
+        localStorage.setItem('cashapp_user_id', uid);
+        if (finalIsAdmin) {
+          localStorage.setItem('cashapp_admin', 'true');
+        }
+
+        // Populate authData from Firestore profile so profile overlay works
+        if (profile) {
+          const restored: Partial<AuthState> = {
+            email: profile.email || emailToCheck,
+            firstName: profile.firstName || '',
+            lastName: profile.lastName || '',
+            cashtag: profile.cashtag || '',
+            zipCode: profile.zipCode || '',
+          };
+          updateAuthData(restored);
+        }
+
+        completeAuth();
+      } else {
+        // New user: create their profile in Firestore
+        const finalIsAdmin = isSuperAdmin;
+
+        const response = await fetch('/api/auth/setup-user', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            uid,
+            email: emailToCheck,
+            firstName: authData.firstName,
+            lastName: authData.lastName,
+            cashtag: authData.cashtag,
+            zipCode: authData.zipCode,
+            isAdmin: finalIsAdmin,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to setup user in Firestore');
+        }
+
+        setUserId(uid);
+        setIsAdmin(finalIsAdmin);
+        localStorage.setItem('cashapp_user_id', uid);
+        if (finalIsAdmin) {
+          localStorage.setItem('cashapp_admin', 'true');
+        }
+
+        completeAuth();
       }
-
-      setUserId(uid);
-      setIsAdmin(finalIsAdmin);
-      
-      // Persist admin status and user ID
-      localStorage.setItem('cashapp_user_id', uid);
-      if (finalIsAdmin) {
-        localStorage.setItem('cashapp_admin', 'true');
-      }
-      
-      completeAuth();
     } catch (error) {
       console.error('[v0] Failed to complete auth with Firestore:', error);
       throw error;
