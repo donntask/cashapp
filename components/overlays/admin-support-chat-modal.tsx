@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { collection, query, where, onSnapshot, orderBy, Timestamp, doc } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, Timestamp, doc } from 'firebase/firestore';
 import { getDb } from '@/lib/firebase-config';
 import { useAuth } from '@/contexts/auth-context';
 import { sendAdminSupportReply, setTypingIndicator } from '@/lib/firestore-service';
@@ -42,14 +42,12 @@ export default function AdminSupportChatModal({ userId, userName, userCashtag, o
     const db = getDb();
     const q = query(
       collection(db, 'supportMessages'),
-      where('uid', '==', userId),
-      orderBy('timestamp', 'asc')
+      where('uid', '==', userId)
     );
     const unsub = onSnapshot(q, (snap) => {
-      const msgs: Message[] = snap.docs.map(d => ({
-        id: d.id,
-        ...(d.data() as Omit<Message, 'id'>),
-      }));
+      const msgs: Message[] = snap.docs
+        .map(d => ({ id: d.id, ...(d.data() as Omit<Message, 'id'>) }))
+        .sort((a, b) => (a.timestamp?.toMillis?.() ?? 0) - (b.timestamp?.toMillis?.() ?? 0));
       setMessages(msgs);
     });
     return () => unsub();
