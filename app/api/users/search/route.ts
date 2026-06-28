@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { collection, query, where, getDocs, limit } from 'firebase/firestore';
-import { db } from '@/lib/firebase-config';
+import { getDb } from '@/lib/firebase-config';
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,6 +21,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, users: [], count: 0 });
     }
 
+    const db = getDb();
     const usersRef = collection(db, 'users');
     const foundMap = new Map<string, any>();
 

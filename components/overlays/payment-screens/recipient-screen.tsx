@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useToast } from '@/contexts/toast-context';
 import { collection, query, where, getDocs, orderBy, limit, startAt, endAt } from 'firebase/firestore';
-import { db } from '@/lib/firebase-config';
+import { getDb } from '@/lib/firebase-config';
 
 interface RecipientScreenProps {
   amount: string;
@@ -25,6 +25,7 @@ async function searchCashtagInFirestore(input: string): Promise<FoundUser[]> {
   const term = input.replace(/^\$/, '').trim().toLowerCase();
   if (!term) return [];
 
+  const db = getDb();
   const usersRef = collection(db, 'users');
   const found = new Map<string, FoundUser>();
 

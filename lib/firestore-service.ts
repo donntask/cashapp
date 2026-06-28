@@ -11,7 +11,7 @@ import {
   Timestamp,
   increment,
 } from 'firebase/firestore';
-import { db } from './firebase-config';
+import { getDb } from './firebase-config';
 
 export interface UserProfile {
   uid: string;
@@ -65,9 +65,6 @@ export interface Contact {
   addedAt: Timestamp;
 }
 
-/**
- * Create a new user profile and account structure in Firestore
- */
 export async function createUserProfile(
   uid: string,
   email: string,
@@ -77,101 +74,55 @@ export async function createUserProfile(
   zipCode: string,
   isAdmin: boolean = false
 ): Promise<UserProfile> {
+  const db = getDb();
   const now = Timestamp.now();
 
   const userProfile: UserProfile = {
-    uid,
-    email,
-    firstName,
-    lastName,
-    cashtag,
-    zipCode,
-    createdAt: now,
-    updatedAt: now,
-    isNewUser: true,
-    isAdmin,
+    uid, email, firstName, lastName, cashtag, zipCode,
+    createdAt: now, updatedAt: now, isNewUser: true, isAdmin,
   };
 
-  const userAccountRef = doc(db, 'users', uid);
-  await setDoc(userAccountRef, userProfile);
-
-  // Initialize account balances
-  const accountData: Account = {
-    uid,
-    cashBalance: 0,
-    savingsBalance: 0,
-    totalTransactions: 0,
-    updatedAt: now,
-  };
-
-  const accountRef = doc(db, 'accounts', uid);
-  await setDoc(accountRef, accountData);
-
-  // Create empty transactions subcollection
-  const transactionsRef = collection(db, 'users', uid, 'transactions');
-  // Subcollection is created implicitly when first document is added
-
-  // Create empty contacts subcollection
-  const contactsRef = collection(db, 'users', uid, 'contacts');
-  // Subcollection is created implicitly when first document is added
+  await setDoc(doc(db, 'users', uid), userProfile);
+  await setDoc(doc(db, 'accounts', uid), {
+    uid, cashBalance: 0, savingsBalance: 0, totalTransactions: 0, updatedAt: now,
+  } as Account);
 
   return userProfile;
 }
 
-/**
- * Get user profile by UID
- */
 export async function getUserProfile(uid: string): Promise<UserProfile | null> {
+  const db = getDb();
   try {
-    const userRef = doc(db, 'users', uid);
-    const userSnap = await getDoc(userRef);
-
-    if (userSnap.exists()) {
-      return userSnap.data() as UserProfile;
-    }
-    return null;
+    const snap = await getDoc(doc(db, 'users', uid));
+    return snap.exists() ? (snap.data() as UserProfile) : null;
   } catch (error) {
     console.error('[v0] Error getting user profile:', error);
     throw error;
   }
 }
 
-/**
- * Get user account balances and info
- */
 export async function getUserAccount(uid: string): Promise<Account | null> {
+  const db = getDb();
   try {
-    const accountRef = doc(db, 'accounts', uid);
-    const accountSnap = await getDoc(accountRef);
-
-    if (accountSnap.exists()) {
-      return accountSnap.data() as Account;
-    }
-    return null;
+    const snap = await getDoc(doc(db, 'accounts', uid));
+    return snap.exists() ? (snap.data() as Account) : null;
   } catch (error) {
     console.error('[v0] Error getting user account:', error);
     throw error;
   }
 }
 
-/**
- * Add a transaction to user's transaction history
- */
 export async function addTransaction(
   uid: string,
   transaction: Omit<Transaction, 'id'>
 ): Promise<string> {
+  const db = getDb();
   try {
-    const transactionsRef = collection(db, 'users', uid, 'transactions');
-    const docRef = await addDoc(transactionsRef, transaction);
-
-    // Update account's total transactions count
-    const accountRef = doc(db, 'accounts', uid);
-    await updateDoc(accountRef, {
+    const docRef = await addDoc(collection(db, 'users', uid, 'transactions'), transaction);
+    await updateDoc(doc(db, 'accounts', uid), {
       totalTransactions: increment(1),
       updatedAt: Timestamp.now(),
     });
-
     return docRef.id;
   } catch (error) {
     console.error('[v0] Error adding transaction:', error);
@@ -179,79 +130,46 @@ export async function addTransaction(
   }
 }
 
-/**
- * Get all transactions for a user
- */
 export async function getUserTransactions(uid: string): Promise<Transaction[]> {
+  const db = getDb();
   try {
-    const transactionsRef = collection(db, 'users', uid, 'transactions');
-    const q = query(transactionsRef);
-    const querySnapshot = await getDocs(q);
-
-    return querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Transaction[];
+    const snap = await getDocs(collection(db, 'users', uid, 'transactions'));
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Transaction[];
   } catch (error) {
     console.error('[v0] Error getting transactions:', error);
     throw error;
   }
 }
 
-/**
- * Update user's cash balance
- */
 export async function updateCashBalance(uid: string, amount: number): Promise<void> {
+  const db = getDb();
   try {
-    const accountRef = doc(db, 'accounts', uid);
-    await updateDoc(accountRef, {
-      cashBalance: amount,
-      updatedAt: Timestamp.now(),
-    });
+    await updateDoc(doc(db, 'accounts', uid), { cashBalance: amount, updatedAt: Timestamp.now() });
   } catch (error) {
     console.error('[v0] Error updating cash balance:', error);
     throw error;
   }
 }
 
-/**
- * Update user's savings balance
- */
 export async function updateSavingsBalance(uid: string, amount: number): Promise<void> {
+  const db = getDb();
   try {
-    const accountRef = doc(db, 'accounts', uid);
-    await updateDoc(accountRef, {
-      savingsBalance: amount,
-      updatedAt: Timestamp.now(),
-    });
+    await updateDoc(doc(db, 'accounts', uid), { savingsBalance: amount, updatedAt: Timestamp.now() });
   } catch (error) {
     console.error('[v0] Error updating savings balance:', error);
     throw error;
   }
 }
 
-/**
- * Add or update a contact
- */
-export async function addContact(
-  uid: string,
-  contact: Omit<Contact, 'id'>
-): Promise<string> {
+export async function addContact(uid: string, contact: Omit<Contact, 'id'>): Promise<string> {
+  const db = getDb();
   try {
     const contactsRef = collection(db, 'users', uid, 'contacts');
-
-    // Check if contact already exists by cashtag
-    const q = query(contactsRef, where('cashtag', '==', contact.cashtag));
-    const existingDocs = await getDocs(q);
-
-    if (existingDocs.size > 0) {
-      const existingDoc = existingDocs.docs[0];
-      await updateDoc(existingDoc.ref, {
-        ...contact,
-      });
-      return existingDoc.id;
+    const existing = await getDocs(query(contactsRef, where('cashtag', '==', contact.cashtag)));
+    if (existing.size > 0) {
+      await updateDoc(existing.docs[0].ref, { ...contact });
+      return existing.docs[0].id;
     }
-
     const docRef = await addDoc(contactsRef, contact);
     return docRef.id;
   } catch (error) {
@@ -260,111 +178,60 @@ export async function addContact(
   }
 }
 
-/**
- * Get all contacts for a user
- */
 export async function getUserContacts(uid: string): Promise<Contact[]> {
+  const db = getDb();
   try {
-    const contactsRef = collection(db, 'users', uid, 'contacts');
-    const q = query(contactsRef);
-    const querySnapshot = await getDocs(q);
-
-    return querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Contact[];
+    const snap = await getDocs(collection(db, 'users', uid, 'contacts'));
+    return snap.docs.map((d) => ({ id: d.id, ...d.data() })) as Contact[];
   } catch (error) {
     console.error('[v0] Error getting contacts:', error);
     throw error;
   }
 }
 
-/**
- * Search user by cashtag (for payments)
- */
-export async function searchUserByCashtag(cashtag: string): Promise<any> {
+export async function searchUserByCashtag(cashtag: string): Promise<UserProfile & Account | null> {
+  const db = getDb();
   try {
-    const usersRef = collection(db, 'users');
-    const q = query(usersRef, where('cashtag', '==', cashtag));
-    const querySnapshot = await getDocs(q);
-
-    if (querySnapshot.size > 0) {
-      const userDoc = querySnapshot.docs[0];
-      const userData = userDoc.data() as UserProfile;
-      
-      // Get account data with balance
-      const accountRef = doc(db, 'accounts', userDoc.id);
-      const accountSnap = await getDoc(accountRef);
-      const accountData = accountSnap.exists() ? accountSnap.data() : { cashBalance: 0, savingsBalance: 0 };
-      
-      return {
-        uid: userDoc.id,
-        ...userData,
-        cashBalance: accountData.cashBalance || 0,
-        savingsBalance: accountData.savingsBalance || 0,
-      };
-    }
-    return null;
+    const snap = await getDocs(query(collection(db, 'users'), where('cashtag', '==', cashtag)));
+    if (snap.empty) return null;
+    const userDoc = snap.docs[0];
+    const userData = userDoc.data() as UserProfile;
+    const accountSnap = await getDoc(doc(db, 'accounts', userDoc.id));
+    const accountData = accountSnap.exists() ? accountSnap.data() : { cashBalance: 0, savingsBalance: 0 };
+    return { uid: userDoc.id, ...userData, ...accountData } as UserProfile & Account;
   } catch (error) {
     console.error('[v0] Error searching user by cashtag:', error);
     throw error;
   }
 }
 
-/**
- * Update user admin status
- */
 export async function updateUserAdminStatus(uid: string, isAdmin: boolean): Promise<void> {
+  const db = getDb();
   try {
-    const userRef = doc(db, 'users', uid);
-    await updateDoc(userRef, {
-      isAdmin,
-      updatedAt: Timestamp.now(),
-    });
+    await updateDoc(doc(db, 'users', uid), { isAdmin, updatedAt: Timestamp.now() });
   } catch (error) {
     console.error('[v0] Error updating admin status:', error);
     throw error;
   }
 }
 
-/**
- * Fund a user's account (Admin only)
- */
 export async function fundUserAccount(uid: string, amount: number): Promise<void> {
+  const db = getDb();
   try {
-    const accountRef = doc(db, 'accounts', uid);
-    const accountSnap = await getDoc(accountRef);
-    
-    if (!accountSnap.exists()) {
-      throw new Error('Account not found');
-    }
-
-    const currentBalance = accountSnap.data().cashBalance || 0;
-    const newBalance = currentBalance + amount;
-
-    await updateDoc(accountRef, {
-      cashBalance: newBalance,
-      updatedAt: Timestamp.now(),
-    });
+    const snap = await getDoc(doc(db, 'accounts', uid));
+    if (!snap.exists()) throw new Error('Account not found');
+    const current = snap.data().cashBalance || 0;
+    await updateDoc(doc(db, 'accounts', uid), { cashBalance: current + amount, updatedAt: Timestamp.now() });
   } catch (error) {
     console.error('[v0] Error funding account:', error);
     throw error;
   }
 }
 
-/**
- * Update user profile
- */
-export async function updateUserProfile(
-  uid: string,
-  updates: Partial<UserProfile>
-): Promise<void> {
+export async function updateUserProfile(uid: string, updates: Partial<UserProfile>): Promise<void> {
+  const db = getDb();
   try {
-    const userRef = doc(db, 'users', uid);
-    await updateDoc(userRef, {
-      ...updates,
-      updatedAt: Timestamp.now(),
-    });
+    await updateDoc(doc(db, 'users', uid), { ...updates, updatedAt: Timestamp.now() });
   } catch (error) {
     console.error('[v0] Error updating user profile:', error);
     throw error;

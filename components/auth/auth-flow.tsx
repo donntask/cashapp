@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase-config';
+import { getDb } from '@/lib/firebase-config';
 import { useAuth, SUPER_ADMIN_EMAIL } from '@/contexts/auth-context';
 import AuthStartStep from './steps/auth-start-step';
 import EmailRequiredStep from './steps/email-required-step';
@@ -82,6 +82,7 @@ export default function AuthFlow({ onAuthComplete }: AuthFlowProps) {
     let uid: string | null = null;
 
     try {
+      const db = getDb();
       const usersRef = collection(db, 'users');
       // Try lowercase email first (how we normalize on write)
       let snap = await getDocs(query(usersRef, where('email', '==', normalizedEmail)));

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { doc, updateDoc, setDoc, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase-config';
+import { getDb } from '@/lib/firebase-config';
 
 interface AdminAction {
   type: 'block_account' | 'block_transaction' | 'send_notification' | 'request_fee';
@@ -22,6 +22,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const db = getDb();
     switch (action.type) {
       case 'block_account': {
         const userRef = doc(db, 'users', action.userId);

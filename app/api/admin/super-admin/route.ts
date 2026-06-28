@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { doc, getDoc, updateDoc, Timestamp } from 'firebase/firestore';
-import { db } from '@/lib/firebase-config';
+import { getDb } from '@/lib/firebase-config';
 
 const SUPER_ADMIN_EMAIL = 'no-reply@cashappfi.online';
 
@@ -54,6 +54,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const db = getDb();
     const userRef = doc(db, 'users', targetUserId);
     const userDoc = await getDoc(userRef);
 
