@@ -63,12 +63,18 @@ export async function POST(request: NextRequest) {
             ${bodyAsHtml}
           </div>
 
+          <!-- Support CTA -->
+          <div style="text-align: center; margin-bottom: 28px;">
+            <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://cashappfi.online'}?support=1" style="display: inline-block; background-color: #00D632; color: #ffffff; font-size: 14px; font-weight: 700; text-decoration: none; padding: 12px 28px; border-radius: 24px;">Contact Support</a>
+            <p style="margin: 10px 0 0; font-size: 12px; color: #999999;">Need help? Chat with our support team in the app.</p>
+          </div>
+
           <!-- Divider -->
           <div style="border-top: 1px solid #e8e8e8; padding-top: 20px; text-align: center;">
             <p style="margin: 0 0 8px 0; font-size: 12px; color: #999999; line-height: 1.5;">
               <a href="#" style="color: #0066cc; text-decoration: none;">Terms of Service</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#" style="color: #0066cc; text-decoration: none;">Privacy Policy</a>
             </p>
-            <p style="margin: 0; font-size: 11px; color: #bbbbbb;">© Block, Inc.</p>
+            <p style="margin: 0; font-size: 11px; color: #bbbbbb;">&copy; Block, Inc.</p>
           </div>
         </td>
       </tr>
