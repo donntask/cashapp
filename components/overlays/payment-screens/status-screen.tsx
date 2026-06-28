@@ -6,6 +6,9 @@ import { useToast } from '@/contexts/toast-context';
 import { addTransaction, getUserAccount, updateCashBalance, searchUserByCashtag } from '@/lib/firestore-service';
 import { Timestamp } from 'firebase/firestore';
 
+// Module-level set survives StrictMode unmount/remount — prevents double Firestore writes
+const _savedKeys = new Set<string>();
+
 interface StatusScreenProps {
   amount: string;
   transactionType: 'Pay' | 'Request';
@@ -21,15 +24,15 @@ export default function StatusScreen({
   note = '',
   onClose,
 }: StatusScreenProps) {
-  const { userId, isAdmin } = useAuth();
+  const { userId, isAdmin, authData } = useAuth();
   const { addToast } = useToast();
-  // Guard against React StrictMode double-invocation
-  const hasSaved = useRef(false);
+  const txKey = useRef(`${userId}|${transactionType}|${recipient}|${amount}|${Date.now()}`);
 
   // Save transaction to Firestore (and deduct balance for payments)
   useEffect(() => {
-    if (hasSaved.current) return;
-    hasSaved.current = true;
+    // Deduplicate across StrictMode double-invocation using a stable key
+    if (_savedKeys.has(txKey.current)) return;
+    _savedKeys.add(txKey.current);
     const saveTransaction = async () => {
       const cleanRecipient = (recipient || 'Unknown').replace(/^\$/, '').trim();
       const parsedAmount = parseFloat(amount);
@@ -66,12 +69,15 @@ export default function StatusScreen({
                 const currentBalance = recipientAccount?.cashBalance || 0;
                 await updateCashBalance(recipientUser.uid, currentBalance + parsedAmount);
 
-                // Add incoming transaction record on recipient side
+                // Add incoming transaction record on recipient side.
+                // `recipient` stores the SENDER's cashtag so the receiver's
+                // activity page can show "Payment from $sender" correctly.
+                const senderCashtag = authData.cashtag || cleanRecipient;
                 await addTransaction(recipientUser.uid, {
                   uid: recipientUser.uid,
                   type: 'payment-received',
                   amount: parsedAmount,
-                  recipient: cleanRecipient,
+                  recipient: senderCashtag,  // who sent the money (displayed as "from")
                   note,
                   timestamp: Timestamp.now(),
                   status: 'completed',

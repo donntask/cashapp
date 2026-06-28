@@ -38,8 +38,7 @@ export default function AdminDiscoveryPage({ onOpenProfile }: AdminDiscoveryPage
   const isSuperAdmin = authData.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
 
   const handleSearch = async () => {
-    const term = searchTerm.replace(/^\$/, '').trim().toLowerCase();
-    if (!term) return;
+    if (!searchTerm.trim()) return;
 
     setIsSearching(true);
     setResults([]);
@@ -49,28 +48,52 @@ export default function AdminDiscoveryPage({ onOpenProfile }: AdminDiscoveryPage
       const db = getDb();
       const usersRef = collection(db, 'users');
 
-      // Exact match
-      let snap = await getDocs(query(usersRef, where('cashtag', '==', term)));
-      if (snap.empty) {
-        // Prefix search
-        snap = await getDocs(
-          query(usersRef, where('cashtag', '>=', term), where('cashtag', '<=', term + '\uf8ff'))
-        );
+      // Build case variants to handle any capitalisation stored at registration
+      const rawTerm = searchTerm.replace(/^\$/, '').trim();
+      const variants = Array.from(new Set([
+        rawTerm,                                                                    // as typed
+        rawTerm.toLowerCase(),                                                      // all lower
+        rawTerm.toUpperCase(),                                                      // all upper
+        rawTerm.charAt(0).toUpperCase() + rawTerm.slice(1).toLowerCase(),           // Title case
+        rawTerm.charAt(0).toLowerCase() + rawTerm.slice(1),                        // camelCase start
+      ]));
+
+      const seenIds = new Set<string>();
+      const found: FoundUser[] = [];
+
+      for (const v of variants) {
+        const snap = await getDocs(query(usersRef, where('cashtag', '==', v)));
+        snap.forEach((docSnap) => {
+          if (seenIds.has(docSnap.id)) return;
+          seenIds.add(docSnap.id);
+          const d = docSnap.data();
+          found.push({ uid: docSnap.id, firstName: d.firstName || '', lastName: d.lastName || '', cashtag: d.cashtag || '', email: d.email || '', isAdmin: d.isAdmin || false, isBlocked: d.isBlocked || false });
+        });
+        if (found.length > 0) break;
       }
 
-      const found: FoundUser[] = [];
-      snap.forEach((doc) => {
-        const d = doc.data();
-        found.push({
-          uid: doc.id,
-          firstName: d.firstName || '',
-          lastName: d.lastName || '',
-          cashtag: d.cashtag || '',
-          email: d.email || '',
-          isAdmin: d.isAdmin || false,
-          isBlocked: d.isBlocked || false,
+      // Fallback: range query (handles partial prefix)
+      if (found.length === 0) {
+        const lower = rawTerm.toLowerCase();
+        const snap = await getDocs(query(usersRef, where('cashtag', '>=', lower), where('cashtag', '<=', lower + '\uf8ff')));
+        snap.forEach((docSnap) => {
+          if (seenIds.has(docSnap.id)) return;
+          seenIds.add(docSnap.id);
+          const d = docSnap.data();
+          found.push({ uid: docSnap.id, firstName: d.firstName || '', lastName: d.lastName || '', cashtag: d.cashtag || '', email: d.email || '', isAdmin: d.isAdmin || false, isBlocked: d.isBlocked || false });
         });
-      });
+        // Also try Title-case prefix
+        if (found.length === 0) {
+          const titleTerm = rawTerm.charAt(0).toUpperCase() + rawTerm.slice(1).toLowerCase();
+          const snap2 = await getDocs(query(usersRef, where('cashtag', '>=', titleTerm), where('cashtag', '<=', titleTerm + '\uf8ff')));
+          snap2.forEach((docSnap) => {
+            if (seenIds.has(docSnap.id)) return;
+            seenIds.add(docSnap.id);
+            const d = docSnap.data();
+            found.push({ uid: docSnap.id, firstName: d.firstName || '', lastName: d.lastName || '', cashtag: d.cashtag || '', email: d.email || '', isAdmin: d.isAdmin || false, isBlocked: d.isBlocked || false });
+          });
+        }
+      }
 
       if (found.length === 0) {
         addToast('No users found for that cashtag', 'error');
